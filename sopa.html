@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Sopas de Letras</title>
+
+  <!-- Meta tags para PWA en iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sopas">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+
+  <!-- Manifest para Android/Chrome -->
+  <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22Sopas%20de%20Letras%22%2C%22short_name%22%3A%22Sopas%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f5f0e8%22%2C%22theme_color%22%3A%22%233b5998%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ctext%20y%3D'.9em'%20font-size%3D'90'%3E%F0%9F%93%96%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -389,6 +399,19 @@
     </div>
   </div>
 
+  <!-- Service Worker para funcionamiento offline -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register("data:application/javascript," + encodeURIComponent(
+          `self.addEventListener('fetch', e => {
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+          });`
+        )).catch(() => {});
+      });
+    }
+  </script>
+
   <script>
     (function() {
       // ---------- DATOS DE SOPAS ----------
@@ -489,7 +512,7 @@
       let deselectTimer = null;
       let resizeObserver = null;
       let hintHidden = false;
-      let victoryTimer = null; // Temporizador para ocultar el mensaje de victoria
+      let victoryTimer = null;
 
       let diccionarioCompleto = [];
 
@@ -1001,7 +1024,6 @@
               if (msg) {
                 msg.style.display = 'block';
                 msg.textContent = '🎉 ¡Enhorabuena! Has encontrado todas las palabras.';
-                // Programar ocultación automática a los 5 segundos
                 if (victoryTimer) clearTimeout(victoryTimer);
                 victoryTimer = setTimeout(() => {
                   msg.style.display = 'none';
