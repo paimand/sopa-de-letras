@@ -970,10 +970,22 @@
         if (dragging) { dragging = false; checkWord(); }
       });
 
-      // *** HANDLE CLICK MEJORADO CON INTERPOLACIÓN ***
+      // ========== NUEVA LÓGICA DE SELECCIÓN MEJORADA ==========
+      function isMarked(r, c) {
+        for (let pw of placedWords) {
+          if ((foundSet.has(pw.word) || revealedSet.has(pw.word)) &&
+              pw.positions.some(p => p.r === r && p.c === c)) return true;
+        }
+        return false;
+      }
+
       function handleClick(r, c) {
-        // Si ya está en la selección, desmarcar o reiniciar como antes
+        // Si la celda ya está marcada (found/revealed), no permitir seleccionarla
+        if (isMarked(r, c)) return;
+
         const idx = selection.findIndex(p => p.r === r && p.c === c);
+
+        // Si ya está en la selección, desmarcar (si es la última) o reiniciar
         if (idx !== -1) {
           if (idx === selection.length - 1) {
             selection.pop();
@@ -987,69 +999,76 @@
           return;
         }
 
+        // Primera celda
         if (selection.length === 0) {
           selection = [{r, c}];
           updateMarks();
           return;
         }
 
+        // Ya hay selección, calcular dirección esperada
         const last = selection[selection.length - 1];
-        const dr = r - last.r;
-        const dc = c - last.c;
+        let expectedDir;
 
-        // Si estamos en la misma celda, no hacer nada
-        if (dr === 0 && dc === 0) return;
-
-        // Determinar la dirección esperada
-        let expectedDir = null;
         if (selection.length === 1) {
-          // La dirección es simplemente hacia la nueva celda, debe ser válida (horizontal, vertical o diagonal)
-          if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (Math.abs(dr) !== Math.abs(dc) && dr !== 0 && dc !== 0)) {
-            // Movimiento no válido, reiniciamos selección
+          // Dirección entre la única celda existente y la nueva
+          const dr = r - last.r;
+          const dc = c - last.c;
+          // Debe ser un movimiento válido: horizontal, vertical o diagonal (45°)
+          if ((dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) && (dr !== 0 || dc !== 0)) {
+            expectedDir = { dr: Math.sign(dr), dc: Math.sign(dc) };
+          } else {
+            // Movimiento no válido, reiniciar
             selection = [{r, c}];
             updateMarks();
             return;
           }
-          // Dirección normalizada
-          expectedDir = { dr: Math.sign(dr), dc: Math.sign(dc) };
         } else {
-          // La dirección viene dada por las dos primeras celdas
+          // Dirección fijada por las dos primeras celdas
+          const first = selection[0];
           expectedDir = {
-            dr: Math.sign(selection[1].r - selection[0].r),
-            dc: Math.sign(selection[1].c - selection[0].c)
+            dr: Math.sign(selection[1].r - first.r),
+            dc: Math.sign(selection[1].c - first.c)
           };
         }
 
         // Verificar que la nueva celda está alineada con la dirección esperada
-        // Para ello, el vector (dr, dc) debe ser proporcional a expectedDir
-        const steps = Math.abs(dr) > Math.abs(dc) ? Math.abs(dr) : Math.abs(dc);
-        const stepR = dr / steps;
-        const stepC = dc / steps;
-        const tolerance = 0.001;
-        if (Math.abs(stepR - expectedDir.dr) > tolerance || Math.abs(stepC - expectedDir.dc) > tolerance) {
-          // No alineado: reiniciar selección
+        const dr = r - last.r;
+        const dc = c - last.c;
+
+        // El vector (dr, dc) debe ser un múltiplo entero no negativo de expectedDir
+        const stepsR = expectedDir.dr === 0 ? 0 : dr / expectedDir.dr;
+        const stepsC = expectedDir.dc === 0 ? 0 : dc / expectedDir.dc;
+
+        if (stepsR < 0 || stepsC < 0 || stepsR !== stepsC) {
+          // No alineado
           selection = [{r, c}];
           updateMarks();
           return;
         }
 
-        // Si la celda no es adyacente, interpolar celdas intermedias
-        if (Math.abs(dr) > 1 || Math.abs(dc) > 1) {
-          const newCells = [];
-          for (let i = 1; i <= steps; i++) {
-            const nr = last.r + i * expectedDir.dr;
-            const nc = last.c + i * expectedDir.dc;
-            newCells.push({r: nr, c: nc});
+        const steps = Math.max(stepsR, stepsC, 0);
+        if (steps === 0) return; // misma celda
+
+        // Generar celdas intermedias (incluyendo la nueva)
+        const newCells = [];
+        for (let i = 1; i <= steps; i++) {
+          const nr = last.r + i * expectedDir.dr;
+          const nc = last.c + i * expectedDir.dc;
+          // Verificar límites
+          if (nr < 0 || nr >= currentGridSize || nc < 0 || nc >= currentGridSize) break;
+          // Si alguna celda intermedia está marcada, reiniciamos selección con la nueva
+          if (isMarked(nr, nc)) {
+            selection = [{r, c}];
+            updateMarks();
+            return;
           }
-          // Añadir todas las nuevas celdas, verificando que no estén ya marcadas
-          for (const cell of newCells) {
-            if (!selection.some(p => p.r === cell.r && p.c === cell.c)) {
-              selection.push(cell);
-            }
-          }
-        } else {
-          // Celda adyacente, simplemente añadir
-          selection.push({r, c});
+          newCells.push({r: nr, c: nc});
+        }
+
+        // Añadir las nuevas celdas a la selección
+        for (const cell of newCells) {
+          selection.push(cell);
         }
         updateMarks();
         checkWord();
