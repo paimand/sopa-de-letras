@@ -233,7 +233,6 @@
     .btn-back { border-color: #aaa; color: #555; margin-bottom: 2px; font-size: 0.8rem; }
     .btn-back:hover { background: #f5f5f5; }
 
-    /* Overlay del mensaje de victoria */
     .message {
       position: fixed;
       top: 50%;
@@ -251,7 +250,6 @@
       display: none;
     }
 
-    /* Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5);
@@ -274,7 +272,6 @@
     .btn-no { background: #e0e0e0; color: #333; }
     .btn-no:hover { background: #ccc; }
 
-    /* Diccionario */
     #dictionary-container {
       display: none;
       flex-direction: column;
@@ -569,7 +566,6 @@
         }).join('');
       }
 
-      // ---------- FUNCIÓN PARA OCULTAR EL MENSAJE ----------
       function hideMessage() {
         const msg = document.getElementById('message');
         if (msg) msg.style.display = 'none';
@@ -823,7 +819,7 @@
           }
           attempts++;
         }
-        // fallback sin restricciones
+        // fallback
         grid = Array(currentGridSize).fill().map(() => Array(currentGridSize).fill(''));
         placedWords = [];
         const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
@@ -974,7 +970,9 @@
         if (dragging) { dragging = false; checkWord(); }
       });
 
+      // *** HANDLE CLICK MEJORADO CON INTERPOLACIÓN ***
       function handleClick(r, c) {
+        // Si ya está en la selección, desmarcar o reiniciar como antes
         const idx = selection.findIndex(p => p.r === r && p.c === c);
         if (idx !== -1) {
           if (idx === selection.length - 1) {
@@ -988,19 +986,71 @@
           }
           return;
         }
-        if (selection.length === 0) { selection = [{r, c}]; updateMarks(); return; }
+
+        if (selection.length === 0) {
+          selection = [{r, c}];
+          updateMarks();
+          return;
+        }
+
         const last = selection[selection.length - 1];
-        const dr = r - last.r, dc = c - last.c;
-        if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (dr === 0 && dc === 0)) {
-          selection = [{r, c}]; updateMarks(); return;
-        }
-        if (selection.length >= 2) {
-          const firstDir = { dr: selection[1].r - selection[0].r, dc: selection[1].c - selection[0].c };
-          if (dr !== firstDir.dr || dc !== firstDir.dc) {
-            selection = [{r, c}]; updateMarks(); return;
+        const dr = r - last.r;
+        const dc = c - last.c;
+
+        // Si estamos en la misma celda, no hacer nada
+        if (dr === 0 && dc === 0) return;
+
+        // Determinar la dirección esperada
+        let expectedDir = null;
+        if (selection.length === 1) {
+          // La dirección es simplemente hacia la nueva celda, debe ser válida (horizontal, vertical o diagonal)
+          if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (Math.abs(dr) !== Math.abs(dc) && dr !== 0 && dc !== 0)) {
+            // Movimiento no válido, reiniciamos selección
+            selection = [{r, c}];
+            updateMarks();
+            return;
           }
+          // Dirección normalizada
+          expectedDir = { dr: Math.sign(dr), dc: Math.sign(dc) };
+        } else {
+          // La dirección viene dada por las dos primeras celdas
+          expectedDir = {
+            dr: Math.sign(selection[1].r - selection[0].r),
+            dc: Math.sign(selection[1].c - selection[0].c)
+          };
         }
-        selection.push({r, c});
+
+        // Verificar que la nueva celda está alineada con la dirección esperada
+        // Para ello, el vector (dr, dc) debe ser proporcional a expectedDir
+        const steps = Math.abs(dr) > Math.abs(dc) ? Math.abs(dr) : Math.abs(dc);
+        const stepR = dr / steps;
+        const stepC = dc / steps;
+        const tolerance = 0.001;
+        if (Math.abs(stepR - expectedDir.dr) > tolerance || Math.abs(stepC - expectedDir.dc) > tolerance) {
+          // No alineado: reiniciar selección
+          selection = [{r, c}];
+          updateMarks();
+          return;
+        }
+
+        // Si la celda no es adyacente, interpolar celdas intermedias
+        if (Math.abs(dr) > 1 || Math.abs(dc) > 1) {
+          const newCells = [];
+          for (let i = 1; i <= steps; i++) {
+            const nr = last.r + i * expectedDir.dr;
+            const nc = last.c + i * expectedDir.dc;
+            newCells.push({r: nr, c: nc});
+          }
+          // Añadir todas las nuevas celdas, verificando que no estén ya marcadas
+          for (const cell of newCells) {
+            if (!selection.some(p => p.r === cell.r && p.c === cell.c)) {
+              selection.push(cell);
+            }
+          }
+        } else {
+          // Celda adyacente, simplemente añadir
+          selection.push({r, c});
+        }
         updateMarks();
         checkWord();
       }
