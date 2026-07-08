@@ -17,7 +17,7 @@
     }
     .app-container {
       width: 100%;
-      max-width: 1200px; /* ampliado para dar cabida a dos columnas */
+      max-width: 1200px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -91,12 +91,12 @@
     .btn-diccionario:hover { background: #4a6a82; }
     .btn-diccionario:active { transform: scale(0.96); }
 
-    /* ---- NUEVO LAYOUT DEL JUEGO ---- */
+    /* ---- CONTENEDOR DEL JUEGO (por defecto, columna) ---- */
     #game-container {
       display: none;
       width: 100%;
       gap: 10px;
-      flex-direction: column;  /* móvil: columna */
+      flex-direction: column;
     }
     .game-left {
       display: flex;
@@ -107,21 +107,22 @@
       display: flex;
       justify-content: center;
     }
-    /* En pantallas grandes: dos columnas */
-    @media (min-width: 768px) {
+
+    /* Dos columnas en landscape (móviles apaisados) a partir de 568px
+       y también en cualquier pantalla de 768px o más */
+    @media (min-width: 568px) and (orientation: landscape), (min-width: 768px) {
       #game-container {
         flex-direction: row;
         align-items: flex-start;
       }
       .game-left {
-        flex: 0 0 280px; /* ancho fijo para la izquierda */
+        flex: 0 0 280px;
         max-width: 280px;
       }
       .game-right {
         flex: 1;
       }
     }
-    /* --------------------------------- */
 
     #game-container h1 {
       color: #3b5998;
@@ -194,7 +195,7 @@
       position: relative;
       touch-action: none;
       width: 100%;
-      max-width: 100%; /* para que ocupe todo el ancho del contenedor derecho */
+      max-width: 100%;
       margin: 0 auto;
     }
     .grid {
@@ -202,7 +203,7 @@
       gap: 2px;
       width: 100%;
       position: relative;
-      z-index: 2; /* por encima del canvas */
+      z-index: 2;
     }
     .cell {
       width: 100%;
@@ -243,7 +244,6 @@
       color: white;
     }
 
-    /* Canvas para el trazado continuo (detrás de las letras) */
     #markCanvas {
       position: absolute;
       top: 0; left: 0;
