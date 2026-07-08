@@ -526,9 +526,7 @@
         }
       ];
 
-      // Datos completos de descubrimientos (todas las sopas)
       const descubrimientosData = {
-        // LA PESCA DEL ATÚN
         "ALMADRABA": { emoji: "🎣", def: "Técnica de pesca tradicional con redes fijas", fact: "Se usa desde hace más de 3000 años" },
         "ARPÓN": { emoji: "🏹", def: "Lanza con punta dentada para pescar grandes peces", fact: "Los arpones modernos usan aire comprimido" },
         "CARRETE": { emoji: "🧵", def: "Dispositivo giratorio para enrollar el sedal", fact: "El carrete fue inventado en el siglo XVII" },
@@ -539,13 +537,11 @@
         "RONQUEO": { emoji: "🔊", def: "Sonido que emite el atún con sus músculos", fact: "Los pescadores localizan atunes escuchando este sonido" },
         "SALAZÓN": { emoji: "🧂", def: "Conservación de alimentos con sal", fact: "Los romanos ya usaban esta técnica hace 2000 años" },
         "VENTRESCA": { emoji: "🐟", def: "La parte más jugosa y sabrosa del atún", fact: "Es una de las partes más caras del atún" },
-        // CINCO AL DÍA
         "ARÁNDANO": { emoji: "🫐", def: "Fruto silvestre rico en antioxidantes", fact: "Los arándanos pueden mejorar la memoria" },
         "BERRO": { emoji: "🌿", def: "Planta acuática de sabor picante", fact: "Tiene más hierro que las espinacas" },
         "BRÓCOLI": { emoji: "🥦", def: "Verdura verde llena de vitaminas", fact: "Es una flor comestible" },
         "ESPINACA": { emoji: "🍃", def: "Hoja verde rica en hierro", fact: "Popeye la popularizó en los dibujos animados" },
         "KIWI": { emoji: "🥝", def: "Fruta de piel marrón y pulpa verde", fact: "Contiene el doble de vitamina C que una naranja" },
-        // ANIMALES DEL MUNDO
         "ÁGUILA": { emoji: "🦅", def: "Ave rapaz de vuelo majestuoso", fact: "Puede ver un conejo a 3 km de distancia" },
         "CAIMÁN": { emoji: "🐊", def: "Reptil primo del cocodrilo", fact: "Pueden vivir más de 50 años" },
         "HIPOPÓTAMO": { emoji: "🦛", def: "Gran mamífero de ríos africanos", fact: "Pesan hasta 3 toneladas" },
@@ -561,7 +557,6 @@
         "SAOLA": { emoji: "🦌", def: "Raro antílope de Vietnam", fact: "Solo se descubrió en 1992" },
         "KAKAPO": { emoji: "🦜", def: "Loro nocturno no volador", fact: "Quedan menos de 250 ejemplares en el mundo" },
         "OKAPI": { emoji: "🦒", def: "Pariente de la jirafa con rayas de cebra", fact: "Vive en las selvas del Congo" },
-        // GEOGRAFÍA MUNDIAL
         "ESPAÑA": { emoji: "🇪🇸", def: "País europeo famoso por su cultura", fact: "Es el segundo país con más turistas del mundo" },
         "FRANCIA": { emoji: "🇫🇷", def: "País de la Torre Eiffel", fact: "Es el país más visitado del planeta" },
         "ITALIA": { emoji: "🇮🇹", def: "Cuna del Imperio Romano", fact: "Tiene la mayor cantidad de sitios Patrimonio de la Humanidad" },
@@ -577,7 +572,6 @@
         "SUECIA": { emoji: "🇸🇪", def: "País nórdico de bosques y lagos", fact: "El Premio Nobel se entrega aquí" },
         "CANADÁ": { emoji: "🇨🇦", def: "El segundo país más grande del mundo", fact: "Tiene más lagos que el resto del mundo junto" },
         "PERÚ": { emoji: "🇵🇪", def: "Tierra de los incas", fact: "Tiene una de las 7 maravillas del mundo moderno" },
-        // EN LA COCINA
         "SARTÉN": { emoji: "🍳", def: "Utensilio para freír alimentos", fact: "Las sartenes antiadherentes se inventaron en 1954" },
         "OLLA": { emoji: "🍲", def: "Recipiente para cocinar líquidos", fact: "Las ollas a presión reducen el tiempo de cocción a la mitad" },
         "CAZO": { emoji: "🥘", def: "Olla pequeña con mango largo", fact: "Es ideal para salsas y pequeñas cantidades" },
@@ -595,7 +589,6 @@
         "FUENTE": { emoji: "🍲", def: "Recipiente grande para servir", fact: "Las fuentes de barro mantienen la comida caliente" }
       };
 
-      // Almacenamos qué fichas se han desbloqueado
       function getDesbloqueadas() {
         try { return JSON.parse(localStorage.getItem('descubrimientos') || '[]'); } catch (e) { return []; }
       }
@@ -611,7 +604,6 @@
         }
       }
 
-      // Mostrar tarjeta emergente
       function mostrarTarjetaDescubrimiento(palabra) {
         const data = descubrimientosData[palabra];
         if (!data) return;
@@ -729,7 +721,6 @@
         const grid = document.getElementById('discoveriesGrid');
         if (!grid) return;
         const desbloqueadas = getDesbloqueadas();
-        // Recopilar todas las palabras de todas las sopas
         const todas = [];
         sopasData.forEach(sopa => {
           sopa.palabras.forEach(p => {
@@ -1071,6 +1062,25 @@
         }
       }
 
+      // ========== CORRECCIÓN: PERMITIR SELECCIONAR CELDAS YA ENCONTRADAS ==========
+      function isCellFound(row, col) {
+        for (let pw of placedWords) {
+          if (foundSet.has(pw.word) && pw.positions.some(p => p.r === row && p.c === col)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function isCellRevealed(row, col) {
+        for (let pw of placedWords) {
+          if (revealedSet.has(pw.word) && pw.positions.some(p => p.r === row && p.c === col)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
       function updateCellStyles() {
         const allCells = document.querySelectorAll('.cell');
         allCells.forEach(cell => {
@@ -1078,20 +1088,13 @@
           const c = parseInt(cell.dataset.c);
           cell.classList.remove('selected', 'found', 'revealed');
 
-          for (let pw of placedWords) {
-            if (foundSet.has(pw.word) && pw.positions.some(p => p.r === r && p.c === c)) {
-              cell.classList.add('found');
-              return;
-            }
-          }
-          for (let pw of placedWords) {
-            if (revealedSet.has(pw.word) && pw.positions.some(p => p.r === r && p.c === c)) {
-              cell.classList.add('revealed');
-              return;
-            }
-          }
+          // Prioridad: seleccionada (amarillo) > found (verde) > revealed (salmón)
           if (selection.some(p => p.r === r && p.c === c)) {
             cell.classList.add('selected');
+          } else if (isCellFound(r, c)) {
+            cell.classList.add('found');
+          } else if (isCellRevealed(r, c)) {
+            cell.classList.add('revealed');
           }
         });
         updateMarks();
@@ -1116,10 +1119,8 @@
       });
 
       function handleClick(r, c) {
-        for (let pw of placedWords) {
-          if ((foundSet.has(pw.word) || revealedSet.has(pw.word)) &&
-              pw.positions.some(p => p.r === r && p.c === c)) return;
-        }
+        // SOLO bloqueamos celdas reveladas (salmón), pero NO las encontradas (verde)
+        if (isCellRevealed(r, c)) return;
 
         const idx = selection.findIndex(p => p.r === r && p.c === c);
         if (idx !== -1) {
@@ -1165,7 +1166,6 @@
             updateCellStyles();
             updateWordBar();
             guardarProgresoActual();
-            // *** DESBLOQUEAR DESCUBRIMIENTO ***
             const idxWord = currentWordsSinAcento.indexOf(pw.word);
             if (idxWord !== -1) {
               desbloquearPalabra(currentWords[idxWord]);
