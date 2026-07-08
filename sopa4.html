@@ -105,8 +105,12 @@
       letter-spacing: 0.5px;
       margin: 0;
     }
-    /* El subtítulo ya no se muestra, así que podemos omitir su estilo o mantenerlo para otros usos */
 
+    /* ---- Barra de palabras con indicadores de desplazamiento ---- */
+    .word-bar-wrapper {
+      position: relative;
+      width: 100%;
+    }
     .word-bar-container {
       width: 100%;
       overflow-x: auto;
@@ -118,7 +122,6 @@
       background: rgba(255,255,255,0.5);
       border-radius: 10px;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
-      position: relative;
     }
     .word-bar-container::-webkit-scrollbar { height: 6px; }
     .word-bar-container::-webkit-scrollbar-thumb { background: #c0b0a0; border-radius: 10px; }
@@ -143,14 +146,40 @@
       text-decoration: line-through;
     }
 
-    .scroll-hint {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: -2px;
-      margin-bottom: 4px;
+    /* Flechas indicadoras en los extremos */
+    .scroll-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.8rem;
+      color: #aaa;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 0.3s;
+    }
+    .scroll-arrow.left { left: 2px; }
+    .scroll-arrow.right { right: 2px; }
+    /* Degradados laterales para sugerir más contenido */
+    .word-bar-container::before,
+    .word-bar-container::after {
+      content: "";
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 30px;
+      z-index: 2;
       pointer-events: none;
     }
+    .word-bar-container::before {
+      left: 0;
+      background: linear-gradient(to right, rgba(245,240,232,1), transparent);
+    }
+    .word-bar-container::after {
+      right: 0;
+      background: linear-gradient(to left, rgba(245,240,232,1), transparent);
+    }
+
+    /* Ocultamos el antiguo scroll-hint */
+    .scroll-hint { display: none; }
 
     .counter-text { font-size: 0.8rem; color: #3b5998; font-weight: bold; }
     .grid-container {
@@ -262,7 +291,7 @@
       display: none;
     }
 
-    /* Estilos para el overlay de inicio/continuar */
+    /* Overlay de inicio/continuar */
     .start-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -289,7 +318,13 @@
     .start-box p {
       color: #5c5c5c;
       font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .start-box .hint-text {
+      font-size: 0.85rem;
+      color: #888;
       margin-bottom: 20px;
+      font-style: italic;
     }
     .start-box button {
       padding: 12px 30px;
@@ -400,10 +435,14 @@
 
     <div id="game-container">
       <h1 id="gameTitle"></h1>
-      <!-- Eliminado el subtítulo del flujo normal -->
-      <div class="word-bar-container" id="wordBarContainer">
-        <div class="word-bar" id="wordBar"></div>
+      <div class="word-bar-wrapper">
+        <div class="word-bar-container" id="wordBarContainer">
+          <div class="word-bar" id="wordBar"></div>
+        </div>
+        <span class="scroll-arrow left">‹</span>
+        <span class="scroll-arrow right">›</span>
       </div>
+      <!-- El antiguo scroll-hint se mantiene en el HTML pero no se muestra (display:none) -->
       <div class="scroll-hint" id="scrollHint">← Desliza para ver todas las palabras →</div>
       <div class="counter-text">Aciertos: <span id="counter">0</span> / <span id="totalWords">0</span></div>
       <div class="grid-container">
@@ -425,6 +464,7 @@
     <div class="start-box">
       <h2 id="startTitle"></h2>
       <p id="startText"></p>
+      <p class="hint-text">💡 Desliza el dedo sobre las palabras para verlas todas</p>
       <button id="startButton">EMPEZAR</button>
     </div>
   </div>
@@ -671,23 +711,9 @@
         window.location.reload();
       };
 
-      function setupScrollHint() {
-        const hint = document.getElementById('scrollHint');
-        const bar = document.getElementById('wordBarContainer');
-        if (!hint || !bar) return;
-        hint.style.display = 'block';
-        hintHidden = false;
-        const hideHint = () => {
-          if (!hintHidden) {
-            hint.style.display = 'none';
-            hintHidden = true;
-            bar.removeEventListener('scroll', hideHint);
-          }
-        };
-        bar.addEventListener('scroll', hideHint);
-      }
+      // Ya no usamos setupScrollHint porque hemos eliminado el hint dinámico
 
-      // *** NUEVA FUNCIÓN PARA MOSTRAR OVERLAY DE INICIO/CONTINUAR ***
+      // *** OVERLAY DE INICIO/CONTINUAR ***
       function showStartOverlay(sopa) {
         const overlay = document.getElementById('startOverlay');
         const titleEl = document.getElementById('startTitle');
@@ -701,7 +727,6 @@
         btn.textContent = foundCount > 0 ? 'CONTINUAR' : 'EMPEZAR';
         overlay.style.display = 'flex';
 
-        // Al hacer clic en el botón, ocultamos el overlay
         btn.onclick = function() {
           overlay.style.display = 'none';
         };
@@ -745,12 +770,9 @@
         }
 
         document.getElementById('gameTitle').textContent = sopa.titulo;
-        // Ya no mostramos el subtítulo en el flujo: document.getElementById('gameSubtitle').textContent = sopa.subtitulo;
         document.getElementById('totalWords').textContent = currentWords.length;
         renderGrid();
         updateWordBar();
-
-        setTimeout(() => { setupScrollHint(); }, 300);
 
         document.getElementById('main-menu').style.display = 'none';
         document.getElementById('dictionary-container').style.display = 'none';
@@ -759,7 +781,6 @@
         // Mostrar overlay de inicio/continuar
         showStartOverlay(sopa);
 
-        // Redimensionar canvas después de mostrar
         setTimeout(() => {
           resizeCanvas();
           updateMarks();
@@ -920,7 +941,6 @@
         updateMarks();
       }
 
-      // ---------- FUNCIONES DE DIBUJO DEL CANVAS ----------
       function getLetterSize() {
         const cell = document.querySelector('.cell');
         return cell ? parseFloat(window.getComputedStyle(cell.querySelector('.circle')).fontSize) : 14;
@@ -991,7 +1011,6 @@
         }
       }
 
-      // ---------- ESTILOS DE CELDAS (CÍRCULOS) ----------
       function updateCellStyles() {
         const allCells = document.querySelectorAll('.cell');
         allCells.forEach(cell => {
@@ -1146,7 +1165,6 @@
 
       window.clearMarks = function() { window.resetGame(); };
 
-      // Redimensionar canvas cuando la ventana cambie de tamaño
       window.addEventListener('resize', () => {
         resizeCanvas();
         updateMarks();
