@@ -107,12 +107,6 @@
       margin: 0;
       flex-shrink: 0;
     }
-    .subtitle {
-      color: #5c5c5c;
-      font-size: 0.75rem;
-      text-align: center;
-      flex-shrink: 0;
-    }
 
     .word-bar-container {
       width: 100%;
@@ -137,7 +131,7 @@
       min-width: 100%;
     }
     .word-bar .word-tag {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: #3a3a3a;
       transition: all 0.3s;
       white-space: nowrap;
@@ -149,14 +143,14 @@
 
     .scroll-hint {
       text-align: center;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       color: #888;
       margin: 0;
       flex-shrink: 0;
     }
 
     .counter-text {
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       color: #3b5998;
       font-weight: bold;
       flex-shrink: 0;
@@ -212,7 +206,7 @@
       color: #3e3a35;
       background: #f9f9f9;
       border: 1px solid #d0d0d0;
-      font-size: clamp(0.55rem, 2.5vw, 1rem);
+      font-size: clamp(0.6rem, 3vw, 1.1rem);
       transition: background 0.15s, border-color 0.15s;
     }
     .cell.selected .circle {
@@ -365,7 +359,6 @@
 
     <div id="game-container">
       <h1 id="gameTitle"></h1>
-      <p class="subtitle" id="gameSubtitle"></p>
       <div class="word-bar-container" id="wordBarContainer">
         <div class="word-bar" id="wordBar"></div>
       </div>
@@ -403,21 +396,18 @@
         {
           id: 'atun',
           titulo: '🐟 LA PESCA DEL ATÚN',
-          subtitulo: 'Encuentra estas 10 palabras relacionadas con este pescado azul',
           palabras: ["ALMADRABA", "ARPÓN", "CARRETE", "MARMITAKO", "MERCADO", "MOJAMA", "RED", "RONQUEO", "SALAZÓN", "VENTRESCA"],
           nivel: 'medio'
         },
         {
           id: 'cincoaldia',
           titulo: '🥗 CINCO AL DÍA',
-          subtitulo: 'Encuentra las 5 raciones de frutas y verduras que has de comer al día para mejorar tu salud',
           palabras: ["ARÁNDANO", "BERRO", "BRÓCOLI", "ESPINACA", "KIWI"],
           nivel: 'facil'
         },
         {
           id: 'animales',
           titulo: '🐾 ANIMALES DEL MUNDO',
-          subtitulo: 'Prepárate para cazar estas 15 palabras más rápido que un guepardo en esta sopa salvaje',
           palabras: ["ÁGUILA", "CAIMÁN", "HIPOPÓTAMO", "IGUANA", "LEÓN", "LOBO", "MURCIÉLAGO", "ORANGUTÁN", "RINOCERONTE", "SAPO", "TIGRE", "ZORRO", "SAOLA", "KAKAPO", "OKAPI"],
           nivel: 'dificil',
           cols: 12,
@@ -681,7 +671,6 @@
         }
 
         document.getElementById('gameTitle').textContent = sopa.titulo;
-        document.getElementById('gameSubtitle').textContent = sopa.subtitulo;
         document.getElementById('totalWords').textContent = currentWords.length;
         renderGrid();
         updateWordBar();
