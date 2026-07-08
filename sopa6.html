@@ -509,19 +509,19 @@
         {
           id: 'geografia',
           titulo: '🌍 Geografía Mundial (Países)',
-          subtitulo: 'Encuentra estos 20 países del mundo',
-          palabras: ["ALEMANIA", "ARGENTINA", "AUSTRIA", "BÉLGICA", "BRASIL", "CANADÁ", "CHINA", "COLOMBIA", "CUBA", "EGIPTO", "ESPAÑA", "FRANCIA", "GRECIA", "ITALIA", "JAPÓN", "MÉXICO", "PERÚ", "PORTUGAL", "SUECIA", "SUIZA"],
+          subtitulo: 'Encuentra estos 15 países del mundo',
+          palabras: ["ALEMANIA", "ARGENTINA", "BRASIL", "CANADÁ", "CHINA", "EGIPTO", "ESPAÑA", "FRANCIA", "GRECIA", "ITALIA", "JAPÓN", "MÉXICO", "PERÚ", "PORTUGAL", "SUECIA"],
           cols: 11,
-          rows: 20,
+          rows: 16,
           incluirEnDiccionario: false
         },
         {
           id: 'cocina',
           titulo: '🍳 En la cocina',
-          subtitulo: 'Encuentra estos 20 utensilios de cocina',
-          palabras: ["ADELANTAL", "BATIDORA", "CAZO", "COLADOR", "CUCHARA", "CUCHILLO", "FUENTE", "HORNO", "JARRA", "MORTERO", "NEVERA", "OLLA", "PLATO", "RALLADOR", "SARTÉN", "TAPADER", "TENEDOR", "TOSTADORA", "TRAPO", "VASO"],
+          subtitulo: 'Encuentra estos 15 utensilios de cocina',
+          palabras: ["BATIDORA", "CAZO", "COLADOR", "CUCHARA", "CUCHILLO", "FUENTE", "HORNO", "JARRA", "MORTERO", "NEVERA", "OLLA", "PLATO", "SARTÉN", "TENEDOR", "VASO"],
           cols: 11,
-          rows: 20,
+          rows: 16,
           incluirEnDiccionario: false
         }
       ];
@@ -575,13 +575,8 @@
         "EGIPTO": { emoji: "🇪🇬", def: "Tierra de faraones y pirámides", fact: "Las pirámides tienen más de 4500 años" },
         "GRECIA": { emoji: "🇬🇷", def: "Cuna de la democracia", fact: "Tiene más de 6000 islas" },
         "SUECIA": { emoji: "🇸🇪", def: "País nórdico de bosques y lagos", fact: "El Premio Nobel se entrega aquí" },
-        "SUIZA": { emoji: "🇨🇭", def: "País de los Alpes y el chocolate", fact: "Tiene 4 idiomas oficiales" },
-        "BÉLGICA": { emoji: "🇧🇪", def: "Corazón de la Unión Europea", fact: "Produce más de 800 tipos de cerveza" },
         "CANADÁ": { emoji: "🇨🇦", def: "El segundo país más grande del mundo", fact: "Tiene más lagos que el resto del mundo junto" },
-        "COLOMBIA": { emoji: "🇨🇴", def: "País cafetero por excelencia", fact: "Es el mayor productor de esmeraldas" },
         "PERÚ": { emoji: "🇵🇪", def: "Tierra de los incas", fact: "Tiene una de las 7 maravillas del mundo moderno" },
-        "CUBA": { emoji: "🇨🇺", def: "La isla más grande del Caribe", fact: "Tiene uno de los mejores sistemas de salud del mundo" },
-        "AUSTRIA": { emoji: "🇦🇹", def: "País alpino de la música clásica", fact: "Mozart nació aquí" },
         // EN LA COCINA
         "SARTÉN": { emoji: "🍳", def: "Utensilio para freír alimentos", fact: "Las sartenes antiadherentes se inventaron en 1954" },
         "OLLA": { emoji: "🍲", def: "Recipiente para cocinar líquidos", fact: "Las ollas a presión reducen el tiempo de cocción a la mitad" },
@@ -595,14 +590,9 @@
         "BATIDORA": { emoji: "🌀", def: "Aparato eléctrico para mezclar", fact: "La primera batidora eléctrica fue patentada en 1908" },
         "NEVERA": { emoji: "❄️", def: "Electrodoméstico para conservar frío", fact: "Las neveras domésticas existen desde 1913" },
         "MORTERO": { emoji: "🧂", def: "Recipiente para moler especias", fact: "Se usa desde hace más de 10.000 años" },
-        "RALLADOR": { emoji: "🧀", def: "Utensilio con agujeros cortantes", fact: "Fue inventado en Francia en 1540" },
         "COLADOR": { emoji: "🕳️", def: "Utensilio para escurrir líquidos", fact: "Los coladores de metal existen desde la Edad Media" },
-        "TOSTADORA": { emoji: "🍞", def: "Aparato para tostar pan", fact: "La primera tostadora eléctrica data de 1893" },
         "JARRA": { emoji: "🏺", def: "Recipiente con pico para verter", fact: "Las jarras de cerámica existen desde el Neolítico" },
-        "FUENTE": { emoji: "🍲", def: "Recipiente grande para servir", fact: "Las fuentes de barro mantienen la comida caliente" },
-        "TAPADER": { emoji: "🔒", def: "Tapa para ollas y sartenes", fact: "Las tapas herméticas conservan los aromas" },
-        "ADELANTAL": { emoji: "👩‍🍳", def: "Prenda protectora de cocina", fact: "Los delantales modernos nacieron en el siglo XIX" },
-        "TRAPO": { emoji: "🧹", def: "Paño para limpiar superficies", fact: "Los trapos de cocina deben cambiarse cada día" }
+        "FUENTE": { emoji: "🍲", def: "Recipiente grande para servir", fact: "Las fuentes de barro mantienen la comida caliente" }
       };
 
       // Almacenamos qué fichas se han desbloqueado
@@ -1176,7 +1166,6 @@
             updateWordBar();
             guardarProgresoActual();
             // *** DESBLOQUEAR DESCUBRIMIENTO ***
-            // Buscar la palabra original con acentos
             const idxWord = currentWordsSinAcento.indexOf(pw.word);
             if (idxWord !== -1) {
               desbloquearPalabra(currentWords[idxWord]);
@@ -1236,7 +1225,6 @@
         for (let pw of placedWords) {
           if (!foundSet.has(pw.word)) {
             revealedSet.add(pw.word);
-            // Al resolver, también desbloqueamos
             const idxWord = currentWordsSinAcento.indexOf(pw.word);
             if (idxWord !== -1) {
               desbloquearPalabra(currentWords[idxWord]);
