@@ -504,6 +504,24 @@
           nivel: 'dificil',
           cols: 14,
           rows: 18
+        },
+        {
+          id: 'geografia',
+          titulo: '🌍 Geografía Mundial (Países)',
+          subtitulo: 'Encuentra estos 20 países del mundo',
+          palabras: ["ALEMANIA", "ARGENTINA", "AUSTRIA", "BÉLGICA", "BRASIL", "CANADÁ", "CHINA", "COLOMBIA", "CUBA", "EGIPTO", "ESPAÑA", "FRANCIA", "GRECIA", "ITALIA", "JAPÓN", "MÉXICO", "PERÚ", "PORTUGAL", "SUECIA", "SUIZA"],
+          cols: 12,
+          rows: 21,
+          incluirEnDiccionario: false
+        },
+        {
+          id: 'cocina',
+          titulo: '🍳 En la cocina',
+          subtitulo: 'Encuentra estos 20 utensilios de cocina',
+          palabras: ["ADELANTAL", "BATIDORA", "CAZO", "COLADOR", "CUCHARA", "CUCHILLO", "FUENTE", "HORNO", "JARRA", "MORTERO", "NEVERA", "OLLA", "PLATO", "RALLADOR", "SARTÉN", "TAPADER", "TENEDOR", "TOSTADORA", "TRAPO", "VASO"],
+          cols: 11,
+          rows: 22,
+          incluirEnDiccionario: false
         }
       ];
 
@@ -610,15 +628,16 @@
         sopasList.innerHTML = sopasData.map(sopa => {
           const progress = getSopaProgress(sopa.id);
           const foundCount = progress.found.length;
-          const nivel = sopa.nivel || 'medio';
-          const total = niveles[nivel].totalPalabras;
+          const total = sopa.palabras.length; // total real de palabras
           const completed = foundCount === total;
           let textoProgreso = `${foundCount}/${total}`;
           if (completed) textoProgreso = 'COMPLETO';
+          // No mostrar nivel si no está definido
+          const nivelSpan = sopa.nivel ? `<span class="sopa-nivel">(${sopa.nivel.toUpperCase()})</span>` : '';
           return `
             <div class="sopa-card ${completed ? 'completed' : ''}" onclick="iniciarSopa('${sopa.id}')">
               <div class="sopa-info">
-                <div class="sopa-title">${sopa.titulo} <span class="sopa-nivel">(${nivel.toUpperCase()})</span></div>
+                <div class="sopa-title">${sopa.titulo} ${nivelSpan}</div>
               </div>
               <div class="sopa-progress">${textoProgreso}</div>
             </div>
@@ -647,7 +666,9 @@
 
       function llenarDiccionario() {
         const palabrasSet = new Set();
+        // Solo sopas que no tengan incluirEnDiccionario === false
         sopasData.forEach(sopa => {
+          if (sopa.incluirEnDiccionario === false) return;
           sopa.palabras.forEach(p => {
             const sinAcento = quitarAcentos(p);
             if (!palabrasSet.has(sinAcento)) palabrasSet.add(sinAcento);
@@ -657,6 +678,7 @@
         diccionarioCompleto = palabrasUnicas.map(p => {
           let palabraConAcento = p;
           for (const sopa of sopasData) {
+            if (sopa.incluirEnDiccionario === false) continue;
             const encontrada = sopa.palabras.find(w => quitarAcentos(w) === p);
             if (encontrada) { palabraConAcento = encontrada; break; }
           }
@@ -732,16 +754,21 @@
         if (!sopa) return;
         currentSopaId = id;
 
-        const nivel = sopa.nivel || 'medio';
         if (sopa.cols && sopa.rows) {
           currentGridCols = sopa.cols;
           currentGridRows = sopa.rows;
         } else {
-          const size = sopa.gridSize || niveles[nivel].gridSize;
+          const nivel = sopa.nivel || 'medio';
+          const size = niveles[nivel].gridSize;
           currentGridCols = size;
           currentGridRows = size;
         }
-        currentWords = sopa.palabras.slice(0, niveles[nivel].totalPalabras);
+        // Si no tiene nivel, usar todas las palabras; si tiene, limitar según niveles
+        if (sopa.nivel) {
+          currentWords = sopa.palabras.slice(0, niveles[sopa.nivel].totalPalabras);
+        } else {
+          currentWords = [...sopa.palabras];
+        }
         currentWordsSinAcento = currentWords.map(w => quitarAcentos(w));
 
         const progress = getSopaProgress(id);
