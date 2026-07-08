@@ -510,8 +510,8 @@
           titulo: '🌍 Geografía Mundial (Países)',
           subtitulo: 'Encuentra estos 20 países del mundo',
           palabras: ["ALEMANIA", "ARGENTINA", "AUSTRIA", "BÉLGICA", "BRASIL", "CANADÁ", "CHINA", "COLOMBIA", "CUBA", "EGIPTO", "ESPAÑA", "FRANCIA", "GRECIA", "ITALIA", "JAPÓN", "MÉXICO", "PERÚ", "PORTUGAL", "SUECIA", "SUIZA"],
-          cols: 12,
-          rows: 21,
+          cols: 11,
+          rows: 20,
           incluirEnDiccionario: false
         },
         {
@@ -520,7 +520,7 @@
           subtitulo: 'Encuentra estos 20 utensilios de cocina',
           palabras: ["ADELANTAL", "BATIDORA", "CAZO", "COLADOR", "CUCHARA", "CUCHILLO", "FUENTE", "HORNO", "JARRA", "MORTERO", "NEVERA", "OLLA", "PLATO", "RALLADOR", "SARTÉN", "TAPADER", "TENEDOR", "TOSTADORA", "TRAPO", "VASO"],
           cols: 11,
-          rows: 22,
+          rows: 20,
           incluirEnDiccionario: false
         }
       ];
@@ -628,11 +628,10 @@
         sopasList.innerHTML = sopasData.map(sopa => {
           const progress = getSopaProgress(sopa.id);
           const foundCount = progress.found.length;
-          const total = sopa.palabras.length; // total real de palabras
+          const total = sopa.palabras.length;
           const completed = foundCount === total;
           let textoProgreso = `${foundCount}/${total}`;
           if (completed) textoProgreso = 'COMPLETO';
-          // No mostrar nivel si no está definido
           const nivelSpan = sopa.nivel ? `<span class="sopa-nivel">(${sopa.nivel.toUpperCase()})</span>` : '';
           return `
             <div class="sopa-card ${completed ? 'completed' : ''}" onclick="iniciarSopa('${sopa.id}')">
@@ -666,7 +665,6 @@
 
       function llenarDiccionario() {
         const palabrasSet = new Set();
-        // Solo sopas que no tengan incluirEnDiccionario === false
         sopasData.forEach(sopa => {
           if (sopa.incluirEnDiccionario === false) return;
           sopa.palabras.forEach(p => {
@@ -763,7 +761,6 @@
           currentGridCols = size;
           currentGridRows = size;
         }
-        // Si no tiene nivel, usar todas las palabras; si tiene, limitar según niveles
         if (sopa.nivel) {
           currentWords = sopa.palabras.slice(0, niveles[sopa.nivel].totalPalabras);
         } else {
