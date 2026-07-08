@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Sopas de Letras</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Verdana', 'Arial', sans-serif;
+      background: #f5f0e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #main-menu {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    #main-menu h1 {
+      color: #3b5998;
+      font-size: 1.8rem;
+      text-align: center;
+    }
+    .sopas-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sopa-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      cursor: pointer;
+      border: 1px solid #e0d6c8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .sopa-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .sopa-info { display: flex; flex-direction: column; }
+    .sopa-title { font-size: 1rem; font-weight: bold; color: #3a3a3a; }
+    .sopa-nivel { font-size: 0.8rem; color: #888; }
+    .sopa-progress {
+      font-size: 0.9rem; font-weight: 500; color: #3b5998;
+      background: #f0f4fa; padding: 4px 10px; border-radius: 15px; white-space: nowrap;
+    }
+    .sopa-card.completed .sopa-progress { background: #d4edda; color: #1e5e2e; }
+    .menu-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-reinicio {
+      padding: 12px 24px; background: #c96a4a; color: white;
+      border: none; border-radius: 30px; font-size: 1rem; font-weight: bold;
+      cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .btn-reinicio:hover { background: #b55a3a; }
+    .btn-reinicio:active { transform: scale(0.96); }
+
+    .btn-diccionario {
+      padding: 12px 24px; background: #5a7d9a; color: white;
+      border: none; border-radius: 30px; font-size: 1rem; font-weight: bold;
+      cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .btn-diccionario:hover { background: #4a6a82; }
+    .btn-diccionario:active { transform: scale(0.96); }
+
+    #game-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+    }
+    #game-container h1 {
+      color: #3b5998;
+      font-size: 1.3rem;
+      text-align: center;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+
+    /* ---- Barra de palabras ---- */
+    .word-bar-wrapper { position: relative; width: 100%; }
+    .word-bar-container {
+      width: 100%;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 8px 0;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: #c0b0a0 transparent;
+      background: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+    }
+    .word-bar-container::-webkit-scrollbar { height: 6px; }
+    .word-bar-container::-webkit-scrollbar-thumb { background: #c0b0a0; border-radius: 10px; }
+    .word-bar {
+      display: inline-flex;
+      gap: 20px;
+      align-items: center;
+      padding: 4px 20px;
+      min-width: 100%;
+    }
+    .word-bar .word-tag {
+      font-size: 1rem;
+      color: #3a3a3a;
+      white-space: nowrap;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .word-bar .word-tag.found {
+      color: #1e5e2e;
+      text-decoration: line-through;
+    }
+
+    .scroll-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.8rem;
+      color: #aaa;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .scroll-arrow.left { left: 2px; }
+    .scroll-arrow.right { right: 2px; }
+    .word-bar-container::before,
+    .word-bar-container::after {
+      content: "";
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 30px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .word-bar-container::before {
+      left: 0;
+      background: linear-gradient(to right, rgba(245,240,232,1), transparent);
+    }
+    .word-bar-container::after {
+      right: 0;
+      background: linear-gradient(to left, rgba(245,240,232,1), transparent);
+    }
+
+    .scroll-hint { display: none; }
+
+    .counter-text { font-size: 0.8rem; color: #3b5998; font-weight: bold; }
+    .grid-container {
+      background: #ffffff;
+      padding: 5px;
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .grid-wrapper {
+      position: relative;
+      touch-action: none;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .grid {
+      display: grid;
+      gap: 2px;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+    .cell {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      user-select: none;
+      border: none;
+    }
+    .circle {
+      width: 75%;
+      height: 75%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #3e3a35;
+      background: #f9f9f9;
+      border: 1px solid #d0d0d0;
+      font-size: clamp(0.6rem, 3vw, 1.2rem);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cell.selected .circle {
+      background: #ffea00;
+      border-color: #e6c200;
+    }
+    .cell.found .circle {
+      background: #2d6a4f;
+      border-color: #1e5e2e;
+      color: white;
+    }
+    .cell.revealed .circle {
+      background: #fa8072;
+      border-color: #e07060;
+      color: white;
+    }
+
+    #markCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    button {
+      padding: 7px 12px;
+      color: #333;
+      background: transparent;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    button:active { background: #e0e0e0; }
+    .btn-clear { border-color: #888; color: #666; }
+    .btn-resolve { border-color: #c96a4a; color: #c96a4a; }
+    .btn-back { border-color: #aaa; color: #555; }
+
+    .message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(216, 243, 220, 0.95);
+      color: #1b4332;
+      padding: 15px 30px;
+      border-radius: 16px;
+      font-weight: bold;
+      font-size: 1rem;
+      z-index: 100;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: none;
+    }
+
+    /* Tarjeta emergente al descubrir palabra */
+    .discovery-toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border-radius: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      z-index: 80;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideUp 0.4s ease-out, fadeOut 0.5s 3.5s forwards;
+      max-width: 90%;
+    }
+    .discovery-toast .toast-emoji { font-size: 2rem; }
+    .discovery-toast .toast-text { font-size: 0.9rem; color: #3a3a3a; }
+    @keyframes slideUp {
+      from { transform: translate(-50%, 100px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translate(-50%, -20px); }
+    }
+
+    /* Overlay de inicio/continuar */
+    .start-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(245, 240, 232, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+    }
+    .start-box {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 25px;
+      max-width: 350px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .start-box h2 {
+      color: #3b5998;
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+    }
+    .start-box p {
+      color: #5c5c5c;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .start-box .hint-text {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+    .start-box button {
+      padding: 12px 30px;
+      background: #3b5998;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .start-box button:hover { background: #2d4477; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal-box {
+      background: white; border-radius: 16px; padding: 24px;
+      max-width: 380px; width: 90%; text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .modal-box p { font-size: 1.1rem; color: #3a3a3a; margin-bottom: 20px; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: center; }
+    .modal-buttons button {
+      padding: 10px 20px; border-radius: 25px; font-weight: bold;
+      cursor: pointer; border: none;
+    }
+    .btn-si { background: #c96a4a; color: white; }
+    .btn-no { background: #e0e0e0; color: #333; }
+
+    /* Sección de descubrimientos */
+    #discoveries-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 15px;
+      padding: 10px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #discoveries-container h1 {
+      color: #3b5998;
+      font-size: 1.8rem;
+      text-align: center;
+    }
+    .discoveries-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      width: 100%;
+    }
+    .discovery-card {
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+    }
+    .discovery-card.unlocked:hover { transform: translateY(-3px); }
+    .discovery-card.locked {
+      filter: grayscale(100%);
+      opacity: 0.5;
+    }
+    .discovery-card .card-emoji { font-size: 2.5rem; }
+    .discovery-card .card-word { font-weight: bold; margin: 5px 0; color: #3b5998; }
+    .discovery-card .card-def { font-size: 0.8rem; color: #666; }
+    .discovery-card .card-fact { font-size: 0.75rem; color: #c96a4a; font-style: italic; margin-top: 4px; }
+
+    @media (max-width: 500px) {
+      .circle { font-size: clamp(0.5rem, 4vw, 0.9rem); }
+      .grid { gap: 1px; }
+      .word-tag { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div id="main-menu">
+      <h1>📚 Sopas de Letras</h1>
+      <div class="sopas-list" id="sopasList"></div>
+      <div class="menu-buttons">
+        <button class="btn-diccionario" onclick="mostrarDescubrimientos()">📖 MIS DESCUBRIMIENTOS</button>
+        <button class="btn-reinicio" onclick="mostrarModalReinicio()">REINICIAR JUEGO</button>
+      </div>
+    </div>
+
+    <div id="discoveries-container">
+      <button class="btn-back" onclick="volverDeDescubrimientos()">← Volver al menú</button>
+      <h1>📖 Mis descubrimientos</h1>
+      <div class="discoveries-grid" id="discoveriesGrid"></div>
+    </div>
+
+    <div id="game-container">
+      <h1 id="gameTitle"></h1>
+      <div class="word-bar-wrapper">
+        <div class="word-bar-container" id="wordBarContainer">
+          <div class="word-bar" id="wordBar"></div>
+        </div>
+        <span class="scroll-arrow left">‹</span>
+        <span class="scroll-arrow right">›</span>
+      </div>
+      <div class="scroll-hint" id="scrollHint">← Desliza para ver todas las palabras →</div>
+      <div class="counter-text">Aciertos: <span id="counter">0</span> / <span id="totalWords">0</span></div>
+      <div class="grid-container">
+        <div class="grid-wrapper" id="gridWrapper">
+          <canvas id="markCanvas"></canvas>
+          <div class="grid" id="grid"></div>
+        </div>
+      </div>
+      <div class="buttons">
+        <button class="btn-back" onclick="volverAlMenu()">← Volver al menú</button>
+        <button class="btn-clear" onclick="clearMarks()">Limpiar</button>
+        <button class="btn-resolve" onclick="resolveGame()">Resolver</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="startOverlay" class="start-overlay" style="display: none;">
+    <div class="start-box">
+      <h2 id="startTitle"></h2>
+      <p id="startText"></p>
+      <p class="hint-text">💡 Desliza el dedo sobre las palabras para verlas todas</p>
+      <button id="startButton">EMPEZAR</button>
+    </div>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div id="modalReinicio" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <p>🍲 ¿Seguro que quieres reiniciar el juego?<br>Si reinicias, tus sopas guardadas se convertirán en sopa de letras... literalmente.</p>
+      <div class="modal-buttons">
+        <button class="btn-si" onclick="confirmarReinicio()">Sí, reiniciar</button>
+        <button class="btn-no" onclick="cerrarModal()">No, continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const sopasData = [
+        {
+          id: 'atun',
+          titulo: '🐟 LA PESCA DEL ATÚN',
+          subtitulo: 'Encuentra estas 10 palabras relacionadas con este pescado azul',
+          palabras: ["ALMADRABA", "ARPÓN", "CARRETE", "MARMITAKO", "MERCADO", "MOJAMA", "RED", "RONQUEO", "SALAZÓN", "VENTRESCA"],
+          nivel: 'medio'
+        },
+        {
+          id: 'cincoaldia',
+          titulo: '🥗 CINCO AL DÍA',
+          subtitulo: 'Encuentra las 5 raciones de frutas y verduras que has de comer al día para mejorar tu salud',
+          palabras: ["ARÁNDANO", "BERRO", "BRÓCOLI", "ESPINACA", "KIWI"],
+          nivel: 'facil'
+        },
+        {
+          id: 'animales',
+          titulo: '🐾 ANIMALES DEL MUNDO',
+          subtitulo: 'Prepárate para cazar estas 15 palabras más rápido que un guepardo en esta sopa salvaje',
+          palabras: ["ÁGUILA", "CAIMÁN", "HIPOPÓTAMO", "IGUANA", "LEÓN", "LOBO", "MURCIÉLAGO", "ORANGUTÁN", "RINOCERONTE", "SAPO", "TIGRE", "ZORRO", "SAOLA", "KAKAPO", "OKAPI"],
+          nivel: 'dificil',
+          cols: 14,
+          rows: 18
+        },
+        {
+          id: 'geografia',
+          titulo: '🌍 Geografía Mundial (Países)',
+          subtitulo: 'Encuentra estos 15 países del mundo',
+          palabras: ["ALEMANIA", "ARGENTINA", "BRASIL", "CANADÁ", "CHINA", "EGIPTO", "ESPAÑA", "FRANCIA", "GRECIA", "ITALIA", "JAPÓN", "MÉXICO", "PERÚ", "PORTUGAL", "SUECIA"],
+          cols: 11,
+          rows: 16,
+          incluirEnDiccionario: false
+        },
+        {
+          id: 'cocina',
+          titulo: '🍳 En la cocina',
+          subtitulo: 'Encuentra estos 15 utensilios de cocina',
+          palabras: ["BATIDORA", "CAZO", "COLADOR", "CUCHARA", "CUCHILLO", "FUENTE", "HORNO", "JARRA", "MORTERO", "NEVERA", "OLLA", "PLATO", "SARTÉN", "TENEDOR", "VASO"],
+          cols: 11,
+          rows: 16,
+          incluirEnDiccionario: false
+        }
+      ];
+
+      const descubrimientosData = {
+        "ALMADRABA": { emoji: "🎣", def: "Técnica de pesca tradicional con redes fijas", fact: "Se usa desde hace más de 3000 años" },
+        "ARPÓN": { emoji: "🏹", def: "Lanza con punta dentada para pescar grandes peces", fact: "Los arpones modernos usan aire comprimido" },
+        "CARRETE": { emoji: "🧵", def: "Dispositivo giratorio para enrollar el sedal", fact: "El carrete fue inventado en el siglo XVII" },
+        "MARMITAKO": { emoji: "🍲", def: "Estofado vasco de bonito con patatas", fact: "Era la comida de los pescadores en alta mar" },
+        "MERCADO": { emoji: "🏪", def: "Lugar donde se vende pescado fresco", fact: "El mercado de pescado más grande está en Tokio" },
+        "MOJAMA": { emoji: "🍣", def: "Carne de atún salada y secada al aire", fact: "Se considera un manjar desde la época fenicia" },
+        "RED": { emoji: "🕸️", def: "Malla tejida para atrapar peces", fact: "Las redes de pesca existen desde la prehistoria" },
+        "RONQUEO": { emoji: "🔊", def: "Sonido que emite el atún con sus músculos", fact: "Los pescadores localizan atunes escuchando este sonido" },
+        "SALAZÓN": { emoji: "🧂", def: "Conservación de alimentos con sal", fact: "Los romanos ya usaban esta técnica hace 2000 años" },
+        "VENTRESCA": { emoji: "🐟", def: "La parte más jugosa y sabrosa del atún", fact: "Es una de las partes más caras del atún" },
+        "ARÁNDANO": { emoji: "🫐", def: "Fruto silvestre rico en antioxidantes", fact: "Los arándanos pueden mejorar la memoria" },
+        "BERRO": { emoji: "🌿", def: "Planta acuática de sabor picante", fact: "Tiene más hierro que las espinacas" },
+        "BRÓCOLI": { emoji: "🥦", def: "Verdura verde llena de vitaminas", fact: "Es una flor comestible" },
+        "ESPINACA": { emoji: "🍃", def: "Hoja verde rica en hierro", fact: "Popeye la popularizó en los dibujos animados" },
+        "KIWI": { emoji: "🥝", def: "Fruta de piel marrón y pulpa verde", fact: "Contiene el doble de vitamina C que una naranja" },
+        "ÁGUILA": { emoji: "🦅", def: "Ave rapaz de vuelo majestuoso", fact: "Puede ver un conejo a 3 km de distancia" },
+        "CAIMÁN": { emoji: "🐊", def: "Reptil primo del cocodrilo", fact: "Pueden vivir más de 50 años" },
+        "HIPOPÓTAMO": { emoji: "🦛", def: "Gran mamífero de ríos africanos", fact: "Pesan hasta 3 toneladas" },
+        "IGUANA": { emoji: "🦎", def: "Lagarto tropical de colores vivos", fact: "Pueden permanecer bajo el agua 30 minutos" },
+        "LEÓN": { emoji: "🦁", def: "El rey de la selva africana", fact: "Su rugido se oye a 8 km de distancia" },
+        "LOBO": { emoji: "🐺", def: "Carnívoro que caza en manada", fact: "Los lobos son los antepasados de todos los perros" },
+        "MURCIÉLAGO": { emoji: "🦇", def: "El único mamífero que vuela", fact: "Puede comer hasta 1000 insectos en una noche" },
+        "ORANGUTÁN": { emoji: "🦧", def: "Primate inteligente de pelaje rojizo", fact: "Comparten el 97% del ADN con los humanos" },
+        "RINOCERONTE": { emoji: "🦏", def: "Gran herbívoro con cuerno", fact: "Su cuerno está hecho de queratina, como nuestras uñas" },
+        "SAPO": { emoji: "🐸", def: "Anfibio de piel rugosa", fact: "Absorben agua a través de la piel" },
+        "TIGRE": { emoji: "🐯", def: "Felino rayado de Asia", fact: "Cada tigre tiene rayas únicas, como huellas dactilares" },
+        "ZORRO": { emoji: "🦊", def: "Astuto cánido de cola peluda", fact: "Pueden orientarse con el campo magnético terrestre" },
+        "SAOLA": { emoji: "🦌", def: "Raro antílope de Vietnam", fact: "Solo se descubrió en 1992" },
+        "KAKAPO": { emoji: "🦜", def: "Loro nocturno no volador", fact: "Quedan menos de 250 ejemplares en el mundo" },
+        "OKAPI": { emoji: "🦒", def: "Pariente de la jirafa con rayas de cebra", fact: "Vive en las selvas del Congo" },
+        "ESPAÑA": { emoji: "🇪🇸", def: "País europeo famoso por su cultura", fact: "Es el segundo país con más turistas del mundo" },
+        "FRANCIA": { emoji: "🇫🇷", def: "País de la Torre Eiffel", fact: "Es el país más visitado del planeta" },
+        "ITALIA": { emoji: "🇮🇹", def: "Cuna del Imperio Romano", fact: "Tiene la mayor cantidad de sitios Patrimonio de la Humanidad" },
+        "ALEMANIA": { emoji: "🇩🇪", def: "Potencia industrial europea", fact: "Inventó la imprenta en 1440" },
+        "PORTUGAL": { emoji: "🇵🇹", def: "País de navegantes y exploradores", fact: "Tiene la frontera más antigua de Europa" },
+        "BRASIL": { emoji: "🇧🇷", def: "El país más grande de Sudamérica", fact: "Tiene la mayor selva tropical del mundo" },
+        "MÉXICO": { emoji: "🇲🇽", def: "Tierra de los aztecas", fact: "El chocolate se originó aquí" },
+        "ARGENTINA": { emoji: "🇦🇷", def: "Famosa por el tango y el mate", fact: "Tiene la calle más ancha del mundo" },
+        "JAPÓN": { emoji: "🇯🇵", def: "El país del sol naciente", fact: "Tiene más de 6800 islas" },
+        "CHINA": { emoji: "🇨🇳", def: "La civilización más antigua del mundo", fact: "Inventó el papel hace 2000 años" },
+        "EGIPTO": { emoji: "🇪🇬", def: "Tierra de faraones y pirámides", fact: "Las pirámides tienen más de 4500 años" },
+        "GRECIA": { emoji: "🇬🇷", def: "Cuna de la democracia", fact: "Tiene más de 6000 islas" },
+        "SUECIA": { emoji: "🇸🇪", def: "País nórdico de bosques y lagos", fact: "El Premio Nobel se entrega aquí" },
+        "CANADÁ": { emoji: "🇨🇦", def: "El segundo país más grande del mundo", fact: "Tiene más lagos que el resto del mundo junto" },
+        "PERÚ": { emoji: "🇵🇪", def: "Tierra de los incas", fact: "Tiene una de las 7 maravillas del mundo moderno" },
+        "SARTÉN": { emoji: "🍳", def: "Utensilio para freír alimentos", fact: "Las sartenes antiadherentes se inventaron en 1954" },
+        "OLLA": { emoji: "🍲", def: "Recipiente para cocinar líquidos", fact: "Las ollas a presión reducen el tiempo de cocción a la mitad" },
+        "CAZO": { emoji: "🥘", def: "Olla pequeña con mango largo", fact: "Es ideal para salsas y pequeñas cantidades" },
+        "CUCHILLO": { emoji: "🔪", def: "Herramienta de corte imprescindible", fact: "El cuchillo de chef existe desde hace 200 años" },
+        "TENEDOR": { emoji: "🍴", def: "Utensilio con púas para pinchar", fact: "Se popularizó en Europa en el siglo XVIII" },
+        "CUCHARA": { emoji: "🥄", def: "Utensilio cóncavo para líquidos", fact: "Existe desde la prehistoria" },
+        "PLATO": { emoji: "🍽️", def: "Superficie para servir comida", fact: "Los platos hondos conservan mejor el calor" },
+        "VASO": { emoji: "🥛", def: "Recipiente para beber", fact: "Los vasos de vidrio existen desde hace 3500 años" },
+        "HORNO": { emoji: "🔥", def: "Aparato para cocinar con calor seco", fact: "Los romanos ya tenían hornos de panadería" },
+        "BATIDORA": { emoji: "🌀", def: "Aparato eléctrico para mezclar", fact: "La primera batidora eléctrica fue patentada en 1908" },
+        "NEVERA": { emoji: "❄️", def: "Electrodoméstico para conservar frío", fact: "Las neveras domésticas existen desde 1913" },
+        "MORTERO": { emoji: "🧂", def: "Recipiente para moler especias", fact: "Se usa desde hace más de 10.000 años" },
+        "COLADOR": { emoji: "🕳️", def: "Utensilio para escurrir líquidos", fact: "Los coladores de metal existen desde la Edad Media" },
+        "JARRA": { emoji: "🏺", def: "Recipiente con pico para verter", fact: "Las jarras de cerámica existen desde el Neolítico" },
+        "FUENTE": { emoji: "🍲", def: "Recipiente grande para servir", fact: "Las fuentes de barro mantienen la comida caliente" }
+      };
+
+      function getDesbloqueadas() {
+        try { return JSON.parse(localStorage.getItem('descubrimientos') || '[]'); } catch (e) { return []; }
+      }
+      function saveDesbloqueadas(arr) {
+        localStorage.setItem('descubrimientos', JSON.stringify(arr));
+      }
+      function desbloquearPalabra(palabra) {
+        const lista = getDesbloqueadas();
+        if (!lista.includes(palabra)) {
+          lista.push(palabra);
+          saveDesbloqueadas(lista);
+          mostrarTarjetaDescubrimiento(palabra);
+        }
+      }
+
+      function mostrarTarjetaDescubrimiento(palabra) {
+        const data = descubrimientosData[palabra];
+        if (!data) return;
+        const toast = document.createElement('div');
+        toast.className = 'discovery-toast';
+        toast.innerHTML = `<span class="toast-emoji">${data.emoji}</span><span class="toast-text"><b>${palabra}</b>: ${data.fact}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
+      }
+
+      const niveles = {
+        facil: { gridSize: 9, totalPalabras: 5 },
+        medio: { gridSize: 12, totalPalabras: 10 },
+        dificil: { gridSize: 20, totalPalabras: 15 }
+      };
+
+      function quitarAcentos(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+
+      const DIRS = {
+        horizontal: [[0,1],[0,-1]],
+        vertical: [[1,0],[-1,0]],
+        diagonal: [[1,1],[1,-1],[-1,1],[-1,-1]]
+      };
+      const ALL_DIRS = [...DIRS.horizontal, ...DIRS.vertical, ...DIRS.diagonal];
+
+      let currentSopaId = null;
+      let currentWords = [];
+      let currentWordsSinAcento = [];
+      let currentGridCols = 12;
+      let currentGridRows = 12;
+      let grid = [];
+      let placedWords = [];
+      let foundSet = new Set();
+      let revealedSet = new Set();
+      let selection = [];
+      let dragging = false;
+      let deselectTimer = null;
+      let victoryTimer = null;
+
+      // ---------- PERSISTENCIA ----------
+      function loadProgress() {
+        try { return JSON.parse(localStorage.getItem('sopasProgress')) || {}; } catch (e) { return {}; }
+      }
+      function saveProgress(progress) {
+        try { localStorage.setItem('sopasProgress', JSON.stringify(progress)); } catch (e) {}
+      }
+      function getSopaProgress(id) {
+        return (loadProgress())[id] || { found: [] };
+      }
+      function guardarProgresoActual() {
+        if (!currentSopaId) return;
+        const progress = loadProgress();
+        progress[currentSopaId] = { found: Array.from(foundSet) };
+        saveProgress(progress);
+      }
+
+      function getGridStorageKey(sopaId) { return `sopaGrid_${sopaId}`; }
+      function guardarGrid() {
+        if (!currentSopaId) return;
+        try { localStorage.setItem(getGridStorageKey(currentSopaId), JSON.stringify({ grid, placedWords })); } catch (e) {}
+      }
+      function cargarGrid(sopaId) {
+        try {
+          const saved = localStorage.getItem(getGridStorageKey(sopaId));
+          return saved ? JSON.parse(saved) : null;
+        } catch (e) { return null; }
+      }
+      function eliminarGrid(sopaId) { localStorage.removeItem(getGridStorageKey(sopaId)); }
+
+      // ---------- MENÚ PRINCIPAL ----------
+      function actualizarMenu() {
+        const sopasList = document.getElementById('sopasList');
+        if (!sopasList) return;
+        sopasList.innerHTML = sopasData.map(sopa => {
+          const progress = getSopaProgress(sopa.id);
+          const foundCount = progress.found.length;
+          const total = sopa.palabras.length;
+          const completed = foundCount === total;
+          let textoProgreso = `${foundCount}/${total}`;
+          if (completed) textoProgreso = 'COMPLETO';
+          const nivelSpan = sopa.nivel ? `<span class="sopa-nivel">(${sopa.nivel.toUpperCase()})</span>` : '';
+          return `
+            <div class="sopa-card ${completed ? 'completed' : ''}" onclick="iniciarSopa('${sopa.id}')">
+              <div class="sopa-info">
+                <div class="sopa-title">${sopa.titulo} ${nivelSpan}</div>
+              </div>
+              <div class="sopa-progress">${textoProgreso}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function hideMessage() {
+        const msg = document.getElementById('message');
+        if (msg) msg.style.display = 'none';
+        if (victoryTimer) { clearTimeout(victoryTimer); victoryTimer = null; }
+      }
+
+      window.mostrarDescubrimientos = function() {
+        hideMessage();
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('discoveries-container').style.display = 'flex';
+        llenarDescubrimientos();
+      };
+
+      window.volverDeDescubrimientos = function() {
+        document.getElementById('discoveries-container').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'flex';
+        actualizarMenu();
+      };
+
+      function llenarDescubrimientos() {
+        const grid = document.getElementById('discoveriesGrid');
+        if (!grid) return;
+        const desbloqueadas = getDesbloqueadas();
+        const todas = [];
+        sopasData.forEach(sopa => {
+          sopa.palabras.forEach(p => {
+            if (!todas.includes(p)) todas.push(p);
+          });
+        });
+        todas.sort();
+        grid.innerHTML = todas.map(p => {
+          const unlocked = desbloqueadas.includes(p);
+          const data = descubrimientosData[p] || { emoji: "❓", def: "Descúbrelo jugando", fact: "Completa la sopa para desbloquear" };
+          return `
+            <div class="discovery-card ${unlocked ? 'unlocked' : 'locked'}">
+              <div class="card-emoji">${unlocked ? data.emoji : '🔒'}</div>
+              <div class="card-word">${unlocked ? p : '???'}</div>
+              <div class="card-def">${unlocked ? data.def : 'Palabra por descubrir'}</div>
+              <div class="card-fact">${unlocked ? data.fact : '¡Encuéntrala en una sopa!'}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      window.volverAlMenu = function() {
+        hideMessage();
+        guardarProgresoActual();
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'flex';
+        currentSopaId = null;
+        actualizarMenu();
+      };
+
+      window.mostrarModalReinicio = function() {
+        document.getElementById('modalReinicio').style.display = 'flex';
+      };
+      window.cerrarModal = function() {
+        document.getElementById('modalReinicio').style.display = 'none';
+      };
+      window.confirmarReinicio = function() {
+        hideMessage();
+        localStorage.clear();
+        window.location.reload();
+      };
+
+      function showStartOverlay(sopa) {
+        const overlay = document.getElementById('startOverlay');
+        const titleEl = document.getElementById('startTitle');
+        const textEl = document.getElementById('startText');
+        const btn = document.getElementById('startButton');
+        const progress = getSopaProgress(sopa.id);
+        const foundCount = progress.found.length;
+
+        titleEl.textContent = sopa.titulo;
+        textEl.textContent = sopa.subtitulo;
+        btn.textContent = foundCount > 0 ? 'CONTINUAR' : 'EMPEZAR';
+        overlay.style.display = 'flex';
+
+        btn.onclick = function() {
+          overlay.style.display = 'none';
+        };
+      }
+
+      window.iniciarSopa = function(id) {
+        const sopa = sopasData.find(s => s.id === id);
+        if (!sopa) return;
+        currentSopaId = id;
+
+        if (sopa.cols && sopa.rows) {
+          currentGridCols = sopa.cols;
+          currentGridRows = sopa.rows;
+        } else {
+          const nivel = sopa.nivel || 'medio';
+          const size = niveles[nivel].gridSize;
+          currentGridCols = size;
+          currentGridRows = size;
+        }
+        if (sopa.nivel) {
+          currentWords = sopa.palabras.slice(0, niveles[sopa.nivel].totalPalabras);
+        } else {
+          currentWords = [...sopa.palabras];
+        }
+        currentWordsSinAcento = currentWords.map(w => quitarAcentos(w));
+
+        const progress = getSopaProgress(id);
+        foundSet = new Set(progress.found);
+        revealedSet = new Set();
+        selection = [];
+        clearDeselectTimer();
+        hideMessage();
+
+        const savedGrid = cargarGrid(id);
+        if (savedGrid && savedGrid.grid && savedGrid.placedWords) {
+          grid = savedGrid.grid;
+          placedWords = savedGrid.placedWords;
+          for (let r = 0; r < grid.length; r++)
+            for (let c = 0; c < grid[r].length; c++)
+              grid[r][c] = quitarAcentos(grid[r][c]);
+          placedWords.forEach(pw => { pw.word = quitarAcentos(pw.word); });
+        } else {
+          generate();
+          guardarGrid();
+        }
+
+        document.getElementById('gameTitle').textContent = sopa.titulo;
+        document.getElementById('totalWords').textContent = currentWords.length;
+        renderGrid();
+        updateWordBar();
+
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('discoveries-container').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+
+        showStartOverlay(sopa);
+
+        setTimeout(() => {
+          resizeCanvas();
+          updateMarks();
+        }, 100);
+      };
+
+      function clearDeselectTimer() {
+        if (deselectTimer) { clearTimeout(deselectTimer); deselectTimer = null; }
+      }
+
+      function generate() {
+        let attempts = 0;
+        const maxAttempts = 5;
+        while (attempts < maxAttempts) {
+          grid = Array(currentGridRows).fill().map(() => Array(currentGridCols).fill(''));
+          placedWords = [];
+
+          const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
+          const total = sorted.length;
+
+          const forcedTypes = new Array(total).fill(null);
+          const indices = Array.from({length: total}, (_, i) => i);
+          for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+          }
+
+          let ptr = 0;
+          if (total >= 3) {
+            forcedTypes[indices[ptr]] = 'horizontal'; ptr++;
+            forcedTypes[indices[ptr]] = 'vertical'; ptr++;
+            forcedTypes[indices[ptr]] = 'diagonal'; ptr++;
+          }
+
+          if (ptr < total) {
+            const restantes = total - ptr;
+            const minPorCat = Math.max(1, Math.floor(restantes * 0.25));
+            let needH = Math.min(minPorCat, restantes);
+            let needV = Math.min(minPorCat, restantes - needH);
+            let needD = restantes - needH - needV;
+
+            for (let i = 0; i < needH && ptr < total; i++) {
+              forcedTypes[indices[ptr]] = 'horizontal'; ptr++;
+            }
+            for (let i = 0; i < needV && ptr < total; i++) {
+              forcedTypes[indices[ptr]] = 'vertical'; ptr++;
+            }
+            for (let i = 0; i < needD && ptr < total; i++) {
+              forcedTypes[indices[ptr]] = 'diagonal'; ptr++;
+            }
+          }
+
+          for (let i = 0; i < total; i++) {
+            const w = sorted[i];
+            const forcedType = forcedTypes[i];
+            let placed = false;
+
+            if (forcedType) {
+              const dirs = DIRS[forcedType];
+              for (let att = 0; att < 200 && !placed; att++) {
+                const d = dirs[Math.floor(Math.random() * dirs.length)];
+                const r = Math.floor(Math.random() * currentGridRows);
+                const c = Math.floor(Math.random() * currentGridCols);
+                if (canPlace(w, r, c, d)) {
+                  const pos = place(w, r, c, d);
+                  placedWords.push({word: w, positions: pos});
+                  placed = true;
+                }
+              }
+            }
+
+            if (!placed) {
+              for (let att = 0; att < 300 && !placed; att++) {
+                const d = ALL_DIRS[Math.floor(Math.random() * ALL_DIRS.length)];
+                const r = Math.floor(Math.random() * currentGridRows);
+                const c = Math.floor(Math.random() * currentGridCols);
+                if (canPlace(w, r, c, d)) {
+                  const pos = place(w, r, c, d);
+                  placedWords.push({word: w, positions: pos});
+                  placed = true;
+                }
+              }
+            }
+          }
+
+          if (placedWords.length === total) {
+            for (let r=0; r<currentGridRows; r++)
+              for (let c=0; c<currentGridCols; c++)
+                if (!grid[r][c]) grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            return;
+          }
+          attempts++;
+        }
+        grid = Array(currentGridRows).fill().map(() => Array(currentGridCols).fill(''));
+        placedWords = [];
+        const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
+        for (let w of sorted) {
+          let placed = false;
+          for (let att = 0; att < 500 && !placed; att++) {
+            const d = ALL_DIRS[Math.floor(Math.random() * ALL_DIRS.length)];
+            const r = Math.floor(Math.random() * currentGridRows);
+            const c = Math.floor(Math.random() * currentGridCols);
+            if (canPlace(w, r, c, d)) {
+              const pos = place(w, r, c, d);
+              placedWords.push({word: w, positions: pos});
+              placed = true;
+            }
+          }
+        }
+        for (let r=0; r<currentGridRows; r++)
+          for (let c=0; c<currentGridCols; c++)
+            if (!grid[r][c]) grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+      }
+
+      function canPlace(w, r, c, d) {
+        const [dr, dc] = d;
+        if (r+dr*(w.length-1) < 0 || r+dr*(w.length-1) >= currentGridRows ||
+            c+dc*(w.length-1) < 0 || c+dc*(w.length-1) >= currentGridCols) return false;
+        for (let i=0; i<w.length; i++) {
+          const rr = r+dr*i, cc = c+dc*i;
+          if (grid[rr][cc] && grid[rr][cc] !== w[i]) return false;
+        }
+        return true;
+      }
+
+      function place(w, r, c, d) {
+        const [dr, dc] = d;
+        const pos = [];
+        for (let i=0; i<w.length; i++) {
+          const rr = r+dr*i, cc = c+dc*i;
+          grid[rr][cc] = w[i];
+          pos.push({r: rr, c: cc});
+        }
+        return pos;
+      }
+
+      function renderGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.style.gridTemplateColumns = `repeat(${currentGridCols}, 1fr)`;
+        gridEl.innerHTML = '';
+        for (let r=0; r<currentGridRows; r++) {
+          for (let c=0; c<currentGridCols; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+            const circle = document.createElement('div');
+            circle.className = 'circle';
+            circle.textContent = grid[r][c];
+            cell.appendChild(circle);
+            cell.addEventListener('pointerdown', onPointerDown);
+            gridEl.appendChild(cell);
+          }
+        }
+        updateCellStyles();
+        resizeCanvas();
+        updateMarks();
+      }
+
+      function getLetterSize() {
+        const cell = document.querySelector('.cell');
+        return cell ? parseFloat(window.getComputedStyle(cell.querySelector('.circle')).fontSize) : 14;
+      }
+      function getMarkerWidth() { return getLetterSize() + 4; }
+
+      function resizeCanvas() {
+        const canvas = document.getElementById('markCanvas');
+        const wrapper = document.getElementById('gridWrapper');
+        if (!canvas || !wrapper) return;
+        const rect = wrapper.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+      }
+
+      function getCellCenter(r, c) {
+        const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+        if (!cell) return null;
+        const wrapper = document.getElementById('gridWrapper');
+        if (!wrapper) return null;
+        const wr = wrapper.getBoundingClientRect();
+        const cr = cell.getBoundingClientRect();
+        return {
+          x: cr.left + cr.width/2 - wr.left,
+          y: cr.top + cr.height/2 - wr.top
+        };
+      }
+
+      function drawMarkerLine(positions, color, alpha = 0.5) {
+        if (positions.length < 1) return;
+        const canvas = document.getElementById('markCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const mw = getMarkerWidth();
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = mw;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.shadowColor = 'rgba(0,0,0,0.15)';
+        ctx.shadowBlur = 2;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        ctx.beginPath();
+        const first = getCellCenter(positions[0].r, positions[0].c);
+        if (!first) { ctx.restore(); return; }
+        ctx.moveTo(first.x, first.y);
+        for (let i=1; i<positions.length; i++) {
+          const c = getCellCenter(positions[i].r, positions[i].c);
+          if (!c) continue;
+          ctx.lineTo(c.x, c.y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function updateMarks() {
+        const canvas = document.getElementById('markCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let pw of placedWords) {
+          if (foundSet.has(pw.word)) drawMarkerLine(pw.positions, '#2d6a4f', 0.6);
+          else if (revealedSet.has(pw.word)) drawMarkerLine(pw.positions, '#fa8072', 0.65);
+        }
+      }
+
+      // ========== FUNCIONES AUXILIARES PARA ESTILOS ==========
+      function isCellFound(row, col) {
+        for (let pw of placedWords) {
+          if (foundSet.has(pw.word) && pw.positions.some(p => p.r === row && p.c === col)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function isCellRevealed(row, col) {
+        for (let pw of placedWords) {
+          if (revealedSet.has(pw.word) && pw.positions.some(p => p.r === row && p.c === col)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function updateCellStyles() {
+        const allCells = document.querySelectorAll('.cell');
+        allCells.forEach(cell => {
+          const r = parseInt(cell.dataset.r);
+          const c = parseInt(cell.dataset.c);
+          cell.classList.remove('selected', 'found', 'revealed');
+
+          // Prioridad: seleccionada (amarillo) > found (verde) > revealed (salmón)
+          if (selection.some(p => p.r === r && p.c === c)) {
+            cell.classList.add('selected');
+          } else if (isCellFound(r, c)) {
+            cell.classList.add('found');
+          } else if (isCellRevealed(r, c)) {
+            cell.classList.add('revealed');
+          }
+        });
+        updateMarks();
+      }
+
+      function onPointerDown(e) {
+        e.preventDefault();
+        e.target.releasePointerCapture(e.pointerId);
+        dragging = true;
+        clearDeselectTimer();
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r), c = parseInt(cell.dataset.c);
+        handleClick(r, c);
+      }
+
+      window.addEventListener('pointerup', () => {
+        if (dragging) {
+          dragging = false;
+          checkWord();
+        }
+      });
+
+      function handleClick(r, c) {
+        // SOLO bloqueamos celdas reveladas (salmón), pero NO las encontradas (verde)
+        if (isCellRevealed(r, c)) return;
+
+        const idx = selection.findIndex(p => p.r === r && p.c === c);
+        if (idx !== -1) {
+          if (idx === selection.length - 1) {
+            selection.pop();
+            updateCellStyles();
+            if (selection.length === 0) clearDeselectTimer();
+            checkWord();
+          } else {
+            selection = [{r, c}];
+            updateCellStyles();
+          }
+          return;
+        }
+        if (selection.length === 0) { selection = [{r, c}]; updateCellStyles(); return; }
+        const last = selection[selection.length - 1];
+        const dr = r - last.r, dc = c - last.c;
+        if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (dr === 0 && dc === 0)) {
+          selection = [{r, c}]; updateCellStyles(); return;
+        }
+        if (selection.length >= 2) {
+          const firstDir = { dr: selection[1].r - selection[0].r, dc: selection[1].c - selection[0].c };
+          if (dr !== firstDir.dr || dc !== firstDir.dc) {
+            selection = [{r, c}]; updateCellStyles(); return;
+          }
+        }
+        selection.push({r, c});
+        updateCellStyles();
+        checkWord();
+      }
+
+      function checkWord() {
+        if (selection.length < 2) { scheduleDeselect(); return; }
+        const wordSelected = selection.map(p => grid[p.r][p.c]).join('');
+        const reversed = wordSelected.split('').reverse().join('');
+
+        for (let pw of placedWords) {
+          if (!foundSet.has(pw.word) && !revealedSet.has(pw.word) &&
+              (wordSelected === pw.word || reversed === pw.word)) {
+            foundSet.add(pw.word);
+            selection = [];
+            clearDeselectTimer();
+            updateCellStyles();
+            updateWordBar();
+            guardarProgresoActual();
+            const idxWord = currentWordsSinAcento.indexOf(pw.word);
+            if (idxWord !== -1) {
+              desbloquearPalabra(currentWords[idxWord]);
+            }
+            if (foundSet.size === currentWordsSinAcento.length) {
+              const msg = document.getElementById('message');
+              if (msg) {
+                msg.style.display = 'block';
+                msg.textContent = '🎉 ¡Enhorabuena! Has encontrado todas las palabras.';
+                if (victoryTimer) clearTimeout(victoryTimer);
+                victoryTimer = setTimeout(() => {
+                  msg.style.display = 'none';
+                  victoryTimer = null;
+                }, 5000);
+              }
+            }
+            return;
+          }
+        }
+        scheduleDeselect();
+      }
+
+      function scheduleDeselect() {
+        clearDeselectTimer();
+        deselectTimer = setTimeout(() => {
+          if (selection.length > 0) { selection = []; updateCellStyles(); }
+          deselectTimer = null;
+        }, 2000);
+      }
+
+      function updateWordBar() {
+        const bar = document.getElementById('wordBar');
+        if (!bar) return;
+        bar.innerHTML = currentWords.map((w, index) => {
+          const palabraSinAcento = currentWordsSinAcento[index];
+          const found = foundSet.has(palabraSinAcento);
+          return `<span class="word-tag${found ? ' found' : ''}">${w}</span>`;
+        }).join('');
+        document.getElementById('counter').textContent = foundSet.size;
+      }
+
+      window.resetGame = function() {
+        hideMessage();
+        clearDeselectTimer();
+        foundSet.clear();
+        revealedSet.clear();
+        selection = [];
+        updateCellStyles();
+        updateWordBar();
+        guardarProgresoActual();
+      };
+
+      window.resolveGame = function() {
+        hideMessage();
+        clearDeselectTimer();
+        selection = [];
+        for (let pw of placedWords) {
+          if (!foundSet.has(pw.word)) {
+            revealedSet.add(pw.word);
+            const idxWord = currentWordsSinAcento.indexOf(pw.word);
+            if (idxWord !== -1) {
+              desbloquearPalabra(currentWords[idxWord]);
+            }
+          }
+        }
+        updateCellStyles();
+      };
+
+      window.clearMarks = function() { window.resetGame(); };
+
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        updateMarks();
+      });
+
+      actualizarMenu();
+      document.getElementById('main-menu').style.display = 'flex';
+      document.getElementById('game-container').style.display = 'none';
+      document.getElementById('discoveries-container').style.display = 'none';
+    })();
+  </script>
+</body>
+</html>
