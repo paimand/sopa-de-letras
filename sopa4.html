@@ -17,7 +17,7 @@
     }
     .app-container {
       width: 100%;
-      max-width: 1200px;
+      max-width: 700px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -91,39 +91,13 @@
     .btn-diccionario:hover { background: #4a6a82; }
     .btn-diccionario:active { transform: scale(0.96); }
 
-    /* ---- CONTENEDOR DEL JUEGO (por defecto, columna) ---- */
     #game-container {
       display: none;
+      flex-direction: column;
+      align-items: center;
       width: 100%;
-      gap: 10px;
-      flex-direction: column;
-    }
-    .game-left {
-      display: flex;
-      flex-direction: column;
       gap: 8px;
     }
-    .game-right {
-      display: flex;
-      justify-content: center;
-    }
-
-    /* Dos columnas en landscape (móviles apaisados) a partir de 568px
-       y también en cualquier pantalla de 768px o más */
-    @media (min-width: 568px) and (orientation: landscape), (min-width: 768px) {
-      #game-container {
-        flex-direction: row;
-        align-items: flex-start;
-      }
-      .game-left {
-        flex: 0 0 280px;
-        max-width: 280px;
-      }
-      .game-right {
-        flex: 1;
-      }
-    }
-
     #game-container h1 {
       color: #3b5998;
       font-size: 1.3rem;
@@ -195,7 +169,7 @@
       position: relative;
       touch-action: none;
       width: 100%;
-      max-width: 100%;
+      max-width: 600px;
       margin: 0 auto;
     }
     .grid {
@@ -388,27 +362,23 @@
     </div>
 
     <div id="game-container">
-      <div class="game-left">
-        <h1 id="gameTitle"></h1>
-        <p class="subtitle" id="gameSubtitle"></p>
-        <div class="word-bar-container" id="wordBarContainer">
-          <div class="word-bar" id="wordBar"></div>
-        </div>
-        <div class="scroll-hint" id="scrollHint">← Desliza para ver todas las palabras →</div>
-        <div class="counter-text">Aciertos: <span id="counter">0</span> / <span id="totalWords">0</span></div>
-        <div class="buttons">
-          <button class="btn-back" onclick="volverAlMenu()">← Volver al menú</button>
-          <button class="btn-clear" onclick="clearMarks()">Limpiar</button>
-          <button class="btn-resolve" onclick="resolveGame()">Resolver</button>
+      <h1 id="gameTitle"></h1>
+      <p class="subtitle" id="gameSubtitle"></p>
+      <div class="word-bar-container" id="wordBarContainer">
+        <div class="word-bar" id="wordBar"></div>
+      </div>
+      <div class="scroll-hint" id="scrollHint">← Desliza para ver todas las palabras →</div>
+      <div class="counter-text">Aciertos: <span id="counter">0</span> / <span id="totalWords">0</span></div>
+      <div class="grid-container">
+        <div class="grid-wrapper" id="gridWrapper">
+          <canvas id="markCanvas"></canvas>
+          <div class="grid" id="grid"></div>
         </div>
       </div>
-      <div class="game-right">
-        <div class="grid-container">
-          <div class="grid-wrapper" id="gridWrapper">
-            <canvas id="markCanvas"></canvas>
-            <div class="grid" id="grid"></div>
-          </div>
-        </div>
+      <div class="buttons">
+        <button class="btn-back" onclick="volverAlMenu()">← Volver al menú</button>
+        <button class="btn-clear" onclick="clearMarks()">Limpiar</button>
+        <button class="btn-resolve" onclick="resolveGame()">Resolver</button>
       </div>
     </div>
   </div>
@@ -448,8 +418,8 @@
           subtitulo: 'Prepárate para cazar estas 15 palabras más rápido que un guepardo en esta sopa salvaje',
           palabras: ["ÁGUILA", "CAIMÁN", "HIPOPÓTAMO", "IGUANA", "LEÓN", "LOBO", "MURCIÉLAGO", "ORANGUTÁN", "RINOCERONTE", "SAPO", "TIGRE", "ZORRO", "SAOLA", "KAKAPO", "OKAPI"],
           nivel: 'dificil',
-          cols: 14,
-          rows: 18
+          cols: 12,
+          rows: 20
         }
       ];
 
@@ -720,7 +690,6 @@
         document.getElementById('dictionary-container').style.display = 'none';
         document.getElementById('game-container').style.display = 'flex';
 
-        // Redimensionar canvas después de mostrar
         setTimeout(() => {
           resizeCanvas();
           updateMarks();
@@ -1107,7 +1076,6 @@
 
       window.clearMarks = function() { window.resetGame(); };
 
-      // Redimensionar canvas cuando la ventana cambie de tamaño
       window.addEventListener('resize', () => {
         resizeCanvas();
         updateMarks();
