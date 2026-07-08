@@ -4,16 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Sopas de Letras</title>
-
-  <!-- Meta tags para PWA en iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Sopas">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
-
-  <!-- Manifest para Android/Chrome -->
-  <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22Sopas%20de%20Letras%22%2C%22short_name%22%3A%22Sopas%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f5f0e8%22%2C%22theme_color%22%3A%22%233b5998%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ctext%20y%3D'.9em'%20font-size%3D'90'%3E%F0%9F%93%96%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -233,6 +223,7 @@
     .btn-back { border-color: #aaa; color: #555; margin-bottom: 2px; font-size: 0.8rem; }
     .btn-back:hover { background: #f5f5f5; }
 
+    /* Overlay del mensaje de victoria */
     .message {
       position: fixed;
       top: 50%;
@@ -250,6 +241,7 @@
       display: none;
     }
 
+    /* Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5);
@@ -272,6 +264,7 @@
     .btn-no { background: #e0e0e0; color: #333; }
     .btn-no:hover { background: #ccc; }
 
+    /* Diccionario */
     #dictionary-container {
       display: none;
       flex-direction: column;
@@ -396,19 +389,6 @@
     </div>
   </div>
 
-  <!-- Service Worker para funcionamiento offline -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register("data:application/javascript," + encodeURIComponent(
-          `self.addEventListener('fetch', e => {
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-          });`
-        )).catch(() => {});
-      });
-    }
-  </script>
-
   <script>
     (function() {
       // ---------- DATOS DE SOPAS ----------
@@ -509,7 +489,7 @@
       let deselectTimer = null;
       let resizeObserver = null;
       let hintHidden = false;
-      let victoryTimer = null;
+      let victoryTimer = null; // Temporizador para ocultar el mensaje de victoria
 
       let diccionarioCompleto = [];
 
@@ -566,6 +546,7 @@
         }).join('');
       }
 
+      // ---------- FUNCIÓN PARA OCULTAR EL MENSAJE ----------
       function hideMessage() {
         const msg = document.getElementById('message');
         if (msg) msg.style.display = 'none';
@@ -819,7 +800,7 @@
           }
           attempts++;
         }
-        // fallback
+        // fallback sin restricciones
         grid = Array(currentGridSize).fill().map(() => Array(currentGridSize).fill(''));
         placedWords = [];
         const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
@@ -970,22 +951,8 @@
         if (dragging) { dragging = false; checkWord(); }
       });
 
-      // ========== NUEVA LÓGICA DE SELECCIÓN MEJORADA ==========
-      function isMarked(r, c) {
-        for (let pw of placedWords) {
-          if ((foundSet.has(pw.word) || revealedSet.has(pw.word)) &&
-              pw.positions.some(p => p.r === r && p.c === c)) return true;
-        }
-        return false;
-      }
-
       function handleClick(r, c) {
-        // Si la celda ya está marcada (found/revealed), no permitir seleccionarla
-        if (isMarked(r, c)) return;
-
         const idx = selection.findIndex(p => p.r === r && p.c === c);
-
-        // Si ya está en la selección, desmarcar (si es la última) o reiniciar
         if (idx !== -1) {
           if (idx === selection.length - 1) {
             selection.pop();
@@ -998,78 +965,19 @@
           }
           return;
         }
-
-        // Primera celda
-        if (selection.length === 0) {
-          selection = [{r, c}];
-          updateMarks();
-          return;
-        }
-
-        // Ya hay selección, calcular dirección esperada
+        if (selection.length === 0) { selection = [{r, c}]; updateMarks(); return; }
         const last = selection[selection.length - 1];
-        let expectedDir;
-
-        if (selection.length === 1) {
-          // Dirección entre la única celda existente y la nueva
-          const dr = r - last.r;
-          const dc = c - last.c;
-          // Debe ser un movimiento válido: horizontal, vertical o diagonal (45°)
-          if ((dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) && (dr !== 0 || dc !== 0)) {
-            expectedDir = { dr: Math.sign(dr), dc: Math.sign(dc) };
-          } else {
-            // Movimiento no válido, reiniciar
-            selection = [{r, c}];
-            updateMarks();
-            return;
+        const dr = r - last.r, dc = c - last.c;
+        if (Math.abs(dr) > 1 || Math.abs(dc) > 1 || (dr === 0 && dc === 0)) {
+          selection = [{r, c}]; updateMarks(); return;
+        }
+        if (selection.length >= 2) {
+          const firstDir = { dr: selection[1].r - selection[0].r, dc: selection[1].c - selection[0].c };
+          if (dr !== firstDir.dr || dc !== firstDir.dc) {
+            selection = [{r, c}]; updateMarks(); return;
           }
-        } else {
-          // Dirección fijada por las dos primeras celdas
-          const first = selection[0];
-          expectedDir = {
-            dr: Math.sign(selection[1].r - first.r),
-            dc: Math.sign(selection[1].c - first.c)
-          };
         }
-
-        // Verificar que la nueva celda está alineada con la dirección esperada
-        const dr = r - last.r;
-        const dc = c - last.c;
-
-        // El vector (dr, dc) debe ser un múltiplo entero no negativo de expectedDir
-        const stepsR = expectedDir.dr === 0 ? 0 : dr / expectedDir.dr;
-        const stepsC = expectedDir.dc === 0 ? 0 : dc / expectedDir.dc;
-
-        if (stepsR < 0 || stepsC < 0 || stepsR !== stepsC) {
-          // No alineado
-          selection = [{r, c}];
-          updateMarks();
-          return;
-        }
-
-        const steps = Math.max(stepsR, stepsC, 0);
-        if (steps === 0) return; // misma celda
-
-        // Generar celdas intermedias (incluyendo la nueva)
-        const newCells = [];
-        for (let i = 1; i <= steps; i++) {
-          const nr = last.r + i * expectedDir.dr;
-          const nc = last.c + i * expectedDir.dc;
-          // Verificar límites
-          if (nr < 0 || nr >= currentGridSize || nc < 0 || nc >= currentGridSize) break;
-          // Si alguna celda intermedia está marcada, reiniciamos selección con la nueva
-          if (isMarked(nr, nc)) {
-            selection = [{r, c}];
-            updateMarks();
-            return;
-          }
-          newCells.push({r: nr, c: nc});
-        }
-
-        // Añadir las nuevas celdas a la selección
-        for (const cell of newCells) {
-          selection.push(cell);
-        }
+        selection.push({r, c});
         updateMarks();
         checkWord();
       }
@@ -1093,6 +1001,7 @@
               if (msg) {
                 msg.style.display = 'block';
                 msg.textContent = '🎉 ¡Enhorabuena! Has encontrado todas las palabras.';
+                // Programar ocultación automática a los 5 segundos
                 if (victoryTimer) clearTimeout(victoryTimer);
                 victoryTimer = setTimeout(() => {
                   msg.style.display = 'none';
