@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Segoe UI', 'Georgia', serif;
+      font-family: 'Verdana', 'Arial', sans-serif;
       background: #f5f0e8;
       min-height: 100vh;
       display: flex;
@@ -442,7 +442,6 @@
         <span class="scroll-arrow left">‹</span>
         <span class="scroll-arrow right">›</span>
       </div>
-      <!-- El antiguo scroll-hint se mantiene en el HTML pero no se muestra (display:none) -->
       <div class="scroll-hint" id="scrollHint">← Desliza para ver todas las palabras →</div>
       <div class="counter-text">Aciertos: <span id="counter">0</span> / <span id="totalWords">0</span></div>
       <div class="grid-container">
@@ -459,7 +458,6 @@
     </div>
   </div>
 
-  <!-- Overlay de inicio / continuar -->
   <div id="startOverlay" class="start-overlay" style="display: none;">
     <div class="start-box">
       <h2 id="startTitle"></h2>
@@ -711,9 +709,6 @@
         window.location.reload();
       };
 
-      // Ya no usamos setupScrollHint porque hemos eliminado el hint dinámico
-
-      // *** OVERLAY DE INICIO/CONTINUAR ***
       function showStartOverlay(sopa) {
         const overlay = document.getElementById('startOverlay');
         const titleEl = document.getElementById('startTitle');
@@ -778,7 +773,6 @@
         document.getElementById('dictionary-container').style.display = 'none';
         document.getElementById('game-container').style.display = 'flex';
 
-        // Mostrar overlay de inicio/continuar
         showStartOverlay(sopa);
 
         setTimeout(() => {
