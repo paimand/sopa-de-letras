@@ -177,9 +177,7 @@
       gap: 2px;
       width: 100%;
       position: relative;
-      z-index: 2;
     }
-    /* Cada celda contiene un círculo interno */
     .cell {
       width: 100%;
       aspect-ratio: 1;
@@ -204,7 +202,6 @@
       font-size: clamp(0.6rem, 3vw, 1.2rem);
       transition: background 0.15s, border-color 0.15s;
     }
-    /* Estados de color */
     .cell.selected .circle {
       background: #ffea00;
       border-color: #e6c200;
@@ -241,10 +238,9 @@
     .btn-clear:hover { background: #f0f0f0; }
     .btn-resolve { border-color: #c96a4a; color: #c96a4a; }
     .btn-resolve:hover { background: #fdf0eb; }
-    .btn-back { border-color: #aaa; color: #555; margin-bottom: 2px; font-size: 0.8rem; }
+    .btn-back { border-color: #aaa; color: #555; }
     .btn-back:hover { background: #f5f5f5; }
 
-    /* Overlay del mensaje de victoria */
     .message {
       position: fixed;
       top: 50%;
@@ -262,7 +258,6 @@
       display: none;
     }
 
-    /* Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5);
@@ -285,7 +280,6 @@
     .btn-no { background: #e0e0e0; color: #333; }
     .btn-no:hover { background: #ccc; }
 
-    /* Diccionario */
     #dictionary-container {
       display: none;
       flex-direction: column;
@@ -313,9 +307,7 @@
       background: white;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .search-box input:focus {
-      border-color: #3b5998;
-    }
+    .search-box input:focus { border-color: #3b5998; }
     .dict-list {
       width: 100%;
       background: #fff;
@@ -328,21 +320,10 @@
       max-height: 60vh;
       overflow-y: auto;
     }
-    .dict-entry {
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
-    }
+    .dict-entry { border-bottom: 1px solid #eee; padding-bottom: 8px; }
     .dict-entry:last-child { border-bottom: none; }
-    .dict-word {
-      font-weight: bold;
-      color: #3b5998;
-      font-size: 1.1rem;
-    }
-    .dict-def {
-      font-size: 0.9rem;
-      color: #444;
-      margin-top: 2px;
-    }
+    .dict-word { font-weight: bold; color: #3b5998; font-size: 1.1rem; }
+    .dict-def { font-size: 0.9rem; color: #444; margin-top: 2px; }
 
     @media (max-width: 500px) {
       .circle { font-size: clamp(0.5rem, 4vw, 0.9rem); }
@@ -353,7 +334,6 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Menú principal -->
     <div id="main-menu">
       <h1>📚 Sopas de Letras</h1>
       <div class="sopas-list" id="sopasList"></div>
@@ -363,7 +343,6 @@
       </div>
     </div>
 
-    <!-- Diccionario -->
     <div id="dictionary-container">
       <button class="btn-back" onclick="volverDeDiccionario()">← Volver al menú</button>
       <h1>📖 Diccionario</h1>
@@ -373,9 +352,7 @@
       <div class="dict-list" id="dictList"></div>
     </div>
 
-    <!-- Juego -->
     <div id="game-container">
-      <button class="btn-back" onclick="volverAlMenu()">← Volver al menú</button>
       <h1 id="gameTitle"></h1>
       <p class="subtitle" id="gameSubtitle"></p>
       <div class="word-bar-container" id="wordBarContainer">
@@ -389,16 +366,15 @@
         </div>
       </div>
       <div class="buttons">
+        <button class="btn-back" onclick="volverAlMenu()">← Volver al menú</button>
         <button class="btn-clear" onclick="clearMarks()">Limpiar</button>
         <button class="btn-resolve" onclick="resolveGame()">Resolver</button>
       </div>
     </div>
   </div>
 
-  <!-- Overlay del mensaje de victoria -->
   <div class="message" id="message"></div>
 
-  <!-- Modal de reinicio -->
   <div id="modalReinicio" class="modal-overlay" style="display: none;">
     <div class="modal-box">
       <p>🍲 ¿Seguro que quieres reiniciar el juego?<br>Si reinicias, tus sopas guardadas se convertirán en sopa de letras... literalmente.</p>
@@ -411,7 +387,6 @@
 
   <script>
     (function() {
-      // ---------- DATOS DE SOPAS ----------
       const sopasData = [
         {
           id: 'atun',
@@ -433,11 +408,11 @@
           subtitulo: 'Prepárate para cazar estas 15 palabras más rápido que un guepardo en esta sopa salvaje',
           palabras: ["ÁGUILA", "CAIMÁN", "HIPOPÓTAMO", "IGUANA", "LEÓN", "LOBO", "MURCIÉLAGO", "ORANGUTÁN", "RINOCERONTE", "SAPO", "TIGRE", "ZORRO", "SAOLA", "KAKAPO", "OKAPI"],
           nivel: 'dificil',
-          gridSize: 16
+          cols: 14,
+          rows: 18
         }
       ];
 
-      // Diccionario de definiciones
       const definiciones = {
         "ALMADRABA": "Técnica tradicional de pesca del atún con redes fijas.",
         "ARPÓN": "Instrumento puntiagudo usado para pescar grandes peces.",
@@ -481,14 +456,6 @@
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       }
 
-      function normalizarGrid(grid) {
-        for (let r = 0; r < grid.length; r++) {
-          for (let c = 0; c < grid[r].length; c++) {
-            grid[r][c] = quitarAcentos(grid[r][c]);
-          }
-        }
-      }
-
       const DIRS = {
         horizontal: [[0,1],[0,-1]],
         vertical: [[1,0],[-1,0]],
@@ -499,7 +466,8 @@
       let currentSopaId = null;
       let currentWords = [];
       let currentWordsSinAcento = [];
-      let currentGridSize = 12;
+      let currentGridCols = 12;
+      let currentGridRows = 12;
       let grid = [];
       let placedWords = [];
       let foundSet = new Set();
@@ -509,10 +477,8 @@
       let deselectTimer = null;
       let hintHidden = false;
       let victoryTimer = null;
-
       let diccionarioCompleto = [];
 
-      // ---------- PERSISTENCIA ----------
       function loadProgress() {
         try { return JSON.parse(localStorage.getItem('sopasProgress')) || {}; } catch (e) { return {}; }
       }
@@ -542,7 +508,6 @@
       }
       function eliminarGrid(sopaId) { localStorage.removeItem(getGridStorageKey(sopaId)); }
 
-      // ---------- MENÚ PRINCIPAL ----------
       function actualizarMenu() {
         const sopasList = document.getElementById('sopasList');
         if (!sopasList) return;
@@ -568,13 +533,9 @@
       function hideMessage() {
         const msg = document.getElementById('message');
         if (msg) msg.style.display = 'none';
-        if (victoryTimer) {
-          clearTimeout(victoryTimer);
-          victoryTimer = null;
-        }
+        if (victoryTimer) { clearTimeout(victoryTimer); victoryTimer = null; }
       }
 
-      // Navegación
       window.mostrarDiccionario = function() {
         hideMessage();
         document.getElementById('main-menu').style.display = 'none';
@@ -593,9 +554,7 @@
         sopasData.forEach(sopa => {
           sopa.palabras.forEach(p => {
             const sinAcento = quitarAcentos(p);
-            if (!palabrasSet.has(sinAcento)) {
-              palabrasSet.add(sinAcento);
-            }
+            if (!palabrasSet.has(sinAcento)) palabrasSet.add(sinAcento);
           });
         });
         const palabrasUnicas = Array.from(palabrasSet).sort();
@@ -603,10 +562,7 @@
           let palabraConAcento = p;
           for (const sopa of sopasData) {
             const encontrada = sopa.palabras.find(w => quitarAcentos(w) === p);
-            if (encontrada) {
-              palabraConAcento = encontrada;
-              break;
-            }
+            if (encontrada) { palabraConAcento = encontrada; break; }
           }
           return {
             palabra: palabraConAcento,
@@ -621,14 +577,12 @@
         const texto = document.getElementById('searchInput').value.trim().toLowerCase();
         const dictList = document.getElementById('dictList');
         if (!dictList) return;
-
         const filtrado = diccionarioCompleto.filter(entry => {
           const palabraSinAcento = quitarAcentos(entry.palabra).toLowerCase();
           const definicionLower = entry.definicion.toLowerCase();
           const textoNormalizado = quitarAcentos(texto);
           return palabraSinAcento.includes(textoNormalizado) || definicionLower.includes(textoNormalizado);
         });
-
         dictList.innerHTML = filtrado.map(entry => `
           <div class="dict-entry">
             <div class="dict-word">${entry.palabra}</div>
@@ -647,7 +601,6 @@
         actualizarMenu();
       };
 
-      // ---------- MODAL ----------
       window.mostrarModalReinicio = function() {
         document.getElementById('modalReinicio').style.display = 'flex';
       };
@@ -666,7 +619,6 @@
         if (!hint || !bar) return;
         hint.style.display = 'block';
         hintHidden = false;
-
         const hideHint = () => {
           if (!hintHidden) {
             hint.style.display = 'none';
@@ -683,7 +635,14 @@
         currentSopaId = id;
 
         const nivel = sopa.nivel || 'medio';
-        currentGridSize = sopa.gridSize || niveles[nivel].gridSize;
+        if (sopa.cols && sopa.rows) {
+          currentGridCols = sopa.cols;
+          currentGridRows = sopa.rows;
+        } else {
+          const size = sopa.gridSize || niveles[nivel].gridSize;
+          currentGridCols = size;
+          currentGridRows = size;
+        }
         currentWords = sopa.palabras.slice(0, niveles[nivel].totalPalabras);
         currentWordsSinAcento = currentWords.map(w => quitarAcentos(w));
 
@@ -698,7 +657,9 @@
         if (savedGrid && savedGrid.grid && savedGrid.placedWords) {
           grid = savedGrid.grid;
           placedWords = savedGrid.placedWords;
-          normalizarGrid(grid);
+          for (let r = 0; r < grid.length; r++)
+            for (let c = 0; c < grid[r].length; c++)
+              grid[r][c] = quitarAcentos(grid[r][c]);
           placedWords.forEach(pw => { pw.word = quitarAcentos(pw.word); });
         } else {
           generate();
@@ -718,7 +679,6 @@
         document.getElementById('game-container').style.display = 'flex';
       };
 
-      // ---------- LÓGICA DEL JUEGO ----------
       function clearDeselectTimer() {
         if (deselectTimer) { clearTimeout(deselectTimer); deselectTimer = null; }
       }
@@ -727,7 +687,7 @@
         let attempts = 0;
         const maxAttempts = 5;
         while (attempts < maxAttempts) {
-          grid = Array(currentGridSize).fill().map(() => Array(currentGridSize).fill(''));
+          grid = Array(currentGridRows).fill().map(() => Array(currentGridCols).fill(''));
           placedWords = [];
 
           const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
@@ -774,8 +734,8 @@
               const dirs = DIRS[forcedType];
               for (let att = 0; att < 200 && !placed; att++) {
                 const d = dirs[Math.floor(Math.random() * dirs.length)];
-                const r = Math.floor(Math.random() * currentGridSize);
-                const c = Math.floor(Math.random() * currentGridSize);
+                const r = Math.floor(Math.random() * currentGridRows);
+                const c = Math.floor(Math.random() * currentGridCols);
                 if (canPlace(w, r, c, d)) {
                   const pos = place(w, r, c, d);
                   placedWords.push({word: w, positions: pos});
@@ -787,8 +747,8 @@
             if (!placed) {
               for (let att = 0; att < 300 && !placed; att++) {
                 const d = ALL_DIRS[Math.floor(Math.random() * ALL_DIRS.length)];
-                const r = Math.floor(Math.random() * currentGridSize);
-                const c = Math.floor(Math.random() * currentGridSize);
+                const r = Math.floor(Math.random() * currentGridRows);
+                const c = Math.floor(Math.random() * currentGridCols);
                 if (canPlace(w, r, c, d)) {
                   const pos = place(w, r, c, d);
                   placedWords.push({word: w, positions: pos});
@@ -799,23 +759,23 @@
           }
 
           if (placedWords.length === total) {
-            for (let r=0; r<currentGridSize; r++)
-              for (let c=0; c<currentGridSize; c++)
+            for (let r=0; r<currentGridRows; r++)
+              for (let c=0; c<currentGridCols; c++)
                 if (!grid[r][c]) grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
             return;
           }
           attempts++;
         }
-        // fallback sin restricciones
-        grid = Array(currentGridSize).fill().map(() => Array(currentGridSize).fill(''));
+        // fallback
+        grid = Array(currentGridRows).fill().map(() => Array(currentGridCols).fill(''));
         placedWords = [];
         const sorted = [...currentWordsSinAcento].sort((a,b) => b.length - a.length);
         for (let w of sorted) {
           let placed = false;
           for (let att = 0; att < 500 && !placed; att++) {
             const d = ALL_DIRS[Math.floor(Math.random() * ALL_DIRS.length)];
-            const r = Math.floor(Math.random() * currentGridSize);
-            const c = Math.floor(Math.random() * currentGridSize);
+            const r = Math.floor(Math.random() * currentGridRows);
+            const c = Math.floor(Math.random() * currentGridCols);
             if (canPlace(w, r, c, d)) {
               const pos = place(w, r, c, d);
               placedWords.push({word: w, positions: pos});
@@ -823,15 +783,15 @@
             }
           }
         }
-        for (let r=0; r<currentGridSize; r++)
-          for (let c=0; c<currentGridSize; c++)
+        for (let r=0; r<currentGridRows; r++)
+          for (let c=0; c<currentGridCols; c++)
             if (!grid[r][c]) grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
       }
 
       function canPlace(w, r, c, d) {
         const [dr, dc] = d;
-        if (r+dr*(w.length-1) < 0 || r+dr*(w.length-1) >= currentGridSize ||
-            c+dc*(w.length-1) < 0 || c+dc*(w.length-1) >= currentGridSize) return false;
+        if (r+dr*(w.length-1) < 0 || r+dr*(w.length-1) >= currentGridRows ||
+            c+dc*(w.length-1) < 0 || c+dc*(w.length-1) >= currentGridCols) return false;
         for (let i=0; i<w.length; i++) {
           const rr = r+dr*i, cc = c+dc*i;
           if (grid[rr][cc] && grid[rr][cc] !== w[i]) return false;
@@ -852,20 +812,18 @@
 
       function renderGrid() {
         const gridEl = document.getElementById('grid');
-        gridEl.style.gridTemplateColumns = `repeat(${currentGridSize}, 1fr)`;
+        gridEl.style.gridTemplateColumns = `repeat(${currentGridCols}, 1fr)`;
         gridEl.innerHTML = '';
-        for (let r=0; r<currentGridSize; r++) {
-          for (let c=0; c<currentGridSize; c++) {
+        for (let r=0; r<currentGridRows; r++) {
+          for (let c=0; c<currentGridCols; c++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
             cell.dataset.r = r;
             cell.dataset.c = c;
-            // Círculo interno
             const circle = document.createElement('div');
             circle.className = 'circle';
             circle.textContent = grid[r][c];
             cell.appendChild(circle);
-            // Solo evento pointerdown (sin pointerenter para no arrastrar)
             cell.addEventListener('pointerdown', onPointerDown);
             gridEl.appendChild(cell);
           }
@@ -873,7 +831,6 @@
         updateCellStyles();
       }
 
-      // Actualizar clases de todas las celdas según el estado
       function updateCellStyles() {
         const allCells = document.querySelectorAll('.cell');
         allCells.forEach(cell => {
@@ -881,21 +838,18 @@
           const c = parseInt(cell.dataset.c);
           cell.classList.remove('selected', 'found', 'revealed');
 
-          // Palabras encontradas (verde)
           for (let pw of placedWords) {
             if (foundSet.has(pw.word) && pw.positions.some(p => p.r === r && p.c === c)) {
               cell.classList.add('found');
-              return; // prioridad found > revealed > selected
+              return;
             }
           }
-          // Palabras reveladas (salmón)
           for (let pw of placedWords) {
             if (revealedSet.has(pw.word) && pw.positions.some(p => p.r === r && p.c === c)) {
               cell.classList.add('revealed');
               return;
             }
           }
-          // Selección actual (amarillo)
           if (selection.some(p => p.r === r && p.c === c)) {
             cell.classList.add('selected');
           }
@@ -921,7 +875,6 @@
       });
 
       function handleClick(r, c) {
-        // No se puede seleccionar celdas ya marcadas (found/revealed)
         for (let pw of placedWords) {
           if ((foundSet.has(pw.word) || revealedSet.has(pw.word)) &&
               pw.positions.some(p => p.r === r && p.c === c)) return;
