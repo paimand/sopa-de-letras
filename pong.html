@@ -239,7 +239,7 @@
     </div>
 
     <script>
-        // ============ CONFIGURACIÓN DE SONIDO ============
+        // ============ SISTEMA DE SONIDO MEJORADO ============
         let audioCtx = null;
         
         function initAudio() {
@@ -251,33 +251,84 @@
             }
         }
         
-        function playTone(frequency, duration, type = 'square', volume = 0.15) {
+        // Sonido de rebote en paleta: barrido ascendente, "vivo"
+        function playPaddleSound() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
+            const freq = 380 + Math.random() * 40;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
-            osc.type = type;
-            osc.frequency.value = frequency;
-            gain.gain.setValueAtTime(volume, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.linearRampToValueAtTime(freq * 1.3, now + 0.06);
+            gain.gain.setValueAtTime(0.10, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + duration);
+            osc.stop(now + 0.08);
         }
         
-        function playPaddleSound() {
-            playTone(440, 0.08, 'square', 0.12);
-        }
-        
+        // Sonido de rebote en pared: tono más grave y corto
         function playWallSound() {
-            playTone(330, 0.06, 'square', 0.10);
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const freq = 200 + Math.random() * 30;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
         }
         
+        // Sonido de punto: "PONG!" resonante + tintineo de estrellitas
         function playScoreSound() {
-            playTone(220, 0.15, 'square', 0.15);
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            // 1. "PONG!" - barrido descendente (efecto campana/gota)
+            const oscPong = audioCtx.createOscillator();
+            const gainPong = audioCtx.createGain();
+            oscPong.type = 'square';
+            // Empezar agudo y bajar rápido crea el efecto "pong"
+            oscPong.frequency.setValueAtTime(600, now);
+            oscPong.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+            gainPong.gain.setValueAtTime(0.15, now);
+            gainPong.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+            oscPong.connect(gainPong);
+            gainPong.connect(audioCtx.destination);
+            oscPong.start(now);
+            oscPong.stop(now + 0.20);
+            
+            // 2. Tintineo de estrellas: tono agudo con vibrato (aparece justo después del "pong")
+            const oscStar = audioCtx.createOscillator();
+            const gainStar = audioCtx.createGain();
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            
+            oscStar.type = 'sine';
+            oscStar.frequency.value = 650;
+            lfo.frequency.value = 12;
+            lfoGain.gain.value = 30;
+            lfo.connect(lfoGain);
+            lfoGain.connect(oscStar.frequency);
+            
+            // El tintineo empieza un poco después del inicio del "pong"
+            gainStar.gain.setValueAtTime(0.001, now);
+            gainStar.gain.linearRampToValueAtTime(0.08, now + 0.12);
+            gainStar.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+            oscStar.connect(gainStar);
+            gainStar.connect(audioCtx.destination);
+            
+            lfo.start(now);
+            oscStar.start(now);
+            lfo.stop(now + 0.40);
+            oscStar.stop(now + 0.40);
         }
 
         // Inicializar audio en la primera interacción
@@ -572,13 +623,6 @@
             
             if (shouldUpdate) {
                 let targetY = ball.y;
-                
-                if (!s.noError) {
-                    const errorRange = 25;
-                    const error = (Math.random()-0.5) * errorRange * 2;
-                    targetY += error;
-                }
-                
                 aiTargetY = Math.max(FIELD_TOP + ai.height/2, Math.min(FIELD_BOTTOM - ai.height/2, targetY));
             }
             
