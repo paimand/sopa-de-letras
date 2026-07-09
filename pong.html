@@ -239,57 +239,111 @@
     </div>
 
     <script>
+        // ============ CONFIGURACIÓN DE SONIDO ============
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch(e) {
+                console.log("Audio no soportado");
+            }
+        }
+        
+        function playTone(frequency, duration, type = 'square', volume = 0.15) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.value = frequency;
+            gain.gain.setValueAtTime(volume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+        
+        function playPaddleSound() {
+            playTone(440, 0.08, 'square', 0.12);
+        }
+        
+        function playWallSound() {
+            playTone(330, 0.06, 'square', 0.10);
+        }
+        
+        function playScoreSound() {
+            playTone(220, 0.15, 'square', 0.15);
+        }
+
+        // Inicializar audio en la primera interacción
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('touchstart', initAudio, { once: true });
+
+        // ============ CONFIGURACIÓN DEL JUEGO ============
         const POINTS_OPTIONS = [2, 5, 10, 15];
         const DIFFICULTY_OPTIONS = ['PRINCIPIANTE', 'AFICIONADO', 'PROFESIONAL', 'MASTER DEL PONG'];
         
         const DIFFICULTY_SETTINGS = {
             'PRINCIPIANTE': {
-                aiSpeedPercent: 0.50,      // 50% de 8 px/frame = 4 px/frame
-                baseReactionFrames: 2,     // Comienza con 2
+                initialBallSpeed: 6,
+                aiSpeedPercent: 1.0,
+                reactionFramesBase: 2,
+                reactionFramesIncrement: 1,
+                reactionFramesIncrementInterval: 2,
                 ballSpeedType: 'frenetic',
-                ballSpeedIncrement: 0.1,
+                ballSpeedIncrement: 0.4,
                 maxBallSpeed: 15,
                 angleType: 'fixed45',
                 english: false,
-                playerHitRate: 0.90,
                 noError: true,
                 noBlindSpot: true
             },
             'AFICIONADO': {
-                aiSpeedPercent: 0.50,      // 4 px/frame
-                reactionFrames: 2,
-                ballSpeedType: 'accelerated', // cada 2 toques
-                ballSpeedIncrement: 0.2,
-                maxBallSpeed: 15,
-                angleType: 'variable',
-                english: false,
-                playerHitRate: 0.70,
-                noError: false,
-                noBlindSpot: false
-            },
-            'PROFESIONAL': {
-                aiSpeedPercent: 1.10,
-                reactionFrames: 8,
-                ballSpeedType: 'accelerated',
-                ballSpeedIncrement: 0.6,
-                maxBallSpeed: 20,
-                angleType: 'extreme',
-                english: true,
-                playerHitRate: 0.40,
-                noError: false,
-                noBlindSpot: false
-            },
-            'MASTER DEL PONG': {
-                aiSpeedPercent: 1.0,
-                reactionFrames: 1,
+                initialBallSpeed: 8,
+                aiSpeedPercent: 1.25,
+                reactionFramesBase: 1,
+                reactionFramesIncrement: 1,
+                reactionFramesIncrementInterval: 2,
                 ballSpeedType: 'frenetic',
                 ballSpeedIncrement: 0.8,
                 maxBallSpeed: 20,
+                angleType: 'variable',
+                english: false,
+                noError: true,
+                noBlindSpot: true
+            },
+            'PROFESIONAL': {
+                initialBallSpeed: 10,
+                aiSpeedPercent: 1.625,
+                reactionFramesBase: 1,
+                reactionFramesIncrement: 1,
+                reactionFramesIncrementInterval: 3,
+                ballSpeedType: 'frenetic',
+                ballSpeedIncrement: 0.8,
+                maxBallSpeed: 20,
+                angleType: 'extreme',
+                english: true,
+                noError: true,
+                noBlindSpot: true
+            },
+            'MASTER DEL PONG': {
+                initialBallSpeed: 12,
+                aiSpeedPercent: 2.0,
+                reactionFramesBase: 0,
+                reactionFramesIncrement: 1,
+                reactionFramesIncrementInterval: 4,
+                ballSpeedType: 'frenetic',
+                ballSpeedIncrement: 1.2,
+                maxBallSpeed: 25,
                 angleType: 'unpredictable',
                 english: true,
-                playerHitRate: 0.15,
-                noError: false,
-                noBlindSpot: false
+                noError: true,
+                noBlindSpot: true
             }
         };
         
@@ -327,10 +381,6 @@
         const FIELD_TOP = LINE_WIDTH, FIELD_BOTTOM = GAME_HEIGHT - LINE_WIDTH;
         const FIELD_LEFT = LINE_WIDTH, FIELD_RIGHT = GAME_WIDTH - LINE_WIDTH;
         
-        const AI_BLIND_SPOT = 16;
-        const AI_TOP_LIMIT = FIELD_TOP + AI_BLIND_SPOT;
-        const AI_BOTTOM_LIMIT = FIELD_BOTTOM - AI_BLIND_SPOT;
-        
         canvas.width = GAME_WIDTH; canvas.height = GAME_HEIGHT;
 
         function resizeCanvas() {
@@ -348,7 +398,7 @@
         const BALL_SIZE = 15;
         const BALL_RADIUS = BALL_SIZE / 2;
         const PLAYER_SPEED = 8;
-        const INITIAL_BALL_SPEED = 6;
+        const DEFAULT_BALL_SPEED = 6;
 
         let player, ai, ball, ballSpeed, particles = [];
         let touchActive = false, gameOver = false, gamePaused = false;
@@ -356,18 +406,21 @@
         let playerTargetY;
         let bounceCount = 0;
         let isFirstServe = true;
-        let currentReactionFrames = 2; // Valor dinámico para principiante
+        let currentReactionFrames = 2;
+        let initialBallSpeed = DEFAULT_BALL_SPEED;
 
         function initGame() {
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            initialBallSpeed = s.initialBallSpeed || DEFAULT_BALL_SPEED;
             player = { x: FIELD_LEFT+20, y: GAME_HEIGHT/2-PADDLE_HEIGHT/2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0 };
             ai = { x: FIELD_RIGHT-20-PADDLE_WIDTH, y: GAME_HEIGHT/2-PADDLE_HEIGHT/2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, score: 0 };
-            ballSpeed = INITIAL_BALL_SPEED;
+            ballSpeed = initialBallSpeed;
             ball = { x: player.x+player.width+30, y: GAME_HEIGHT/2, size: BALL_SIZE, radius: BALL_RADIUS, dx: ballSpeed, dy: 0 };
             particles = []; gameOver = false; gamePaused = false; touchActive = false; frameCount = 0; aiTargetY = GAME_HEIGHT/2;
             playerTargetY = player.y;
             bounceCount = 0;
             isFirstServe = true;
-            currentReactionFrames = DIFFICULTY_SETTINGS['PRINCIPIANTE'].baseReactionFrames || 2;
+            currentReactionFrames = (s.reactionFramesBase !== undefined) ? s.reactionFramesBase : (s.reactionFrames || 2);
         }
 
         function startGame() {
@@ -455,7 +508,9 @@
         function drawScores(){drawScore(ctx,player.score,GAME_WIDTH/4,50);drawScore(ctx,ai.score,GAME_WIDTH*3/4,50);}
 
         function resetBall(lastScorer){
-            ballSpeed = INITIAL_BALL_SPEED;
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            initialBallSpeed = s.initialBallSpeed || DEFAULT_BALL_SPEED;
+            ballSpeed = initialBallSpeed;
             bounceCount = 0;
             if(lastScorer==='player'){ball.x=ai.x-30;ball.dx=-ballSpeed;}
             else if(lastScorer==='ai'){ball.x=player.x+player.width+30;ball.dx=ballSpeed;}
@@ -469,10 +524,7 @@
             } else {
                 ball.dy = ballSpeed*(Math.random()*2-1);
             }
-            // Reiniciar también reactionFrames dinámico al sacar
-            if (gameConfig.difficulty === 'PRINCIPIANTE') {
-                currentReactionFrames = DIFFICULTY_SETTINGS['PRINCIPIANTE'].baseReactionFrames || 2;
-            }
+            currentReactionFrames = (s.reactionFramesBase !== undefined) ? s.reactionFramesBase : (s.reactionFrames || 2);
         }
 
         function checkWinner(){
@@ -484,12 +536,15 @@
         function endGame(msg){gameOver=true;gamePaused=false;pauseBtn.textContent='PAUSA';pauseOverlay.style.display='none';document.getElementById('winner').textContent=msg;document.getElementById('gameOver').style.display='block';document.getElementById('restartGameOver').style.display='block';}
 
         function restartGame(){
-            player.score=0;ai.score=0;ballSpeed=INITIAL_BALL_SPEED;
+            player.score=0;ai.score=0;
             gameOver=false;gamePaused=false;particles=[];frameCount=0;aiTargetY=GAME_HEIGHT/2;
             playerTargetY=GAME_HEIGHT/2-PADDLE_HEIGHT/2;
             bounceCount=0;
             isFirstServe = true;
-            currentReactionFrames = DIFFICULTY_SETTINGS['PRINCIPIANTE'].baseReactionFrames || 2;
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            initialBallSpeed = s.initialBallSpeed || DEFAULT_BALL_SPEED;
+            ballSpeed = initialBallSpeed;
+            currentReactionFrames = (s.reactionFramesBase !== undefined) ? s.reactionFramesBase : (s.reactionFrames || 2);
             pauseBtn.textContent='PAUSA';pauseOverlay.style.display='none';
             document.getElementById('gameOver').style.display='none';document.getElementById('restartGameOver').style.display='none';
             resetBall(null);player.y=GAME_HEIGHT/2-PADDLE_HEIGHT/2;ai.y=GAME_HEIGHT/2-PADDLE_HEIGHT/2;
@@ -507,47 +562,24 @@
             if (player.y + player.height > FIELD_BOTTOM) { player.y = FIELD_BOTTOM - player.height; playerTargetY = FIELD_BOTTOM - player.height; }
         }
 
-        // ============ IA CON REACTIONFRAMES DINÁMICO PARA PRINCIPIANTE ============
         function moveAI() {
             const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
             const ac = ai.y + ai.height/2;
             
-            if (gameConfig.difficulty === 'MASTER DEL PONG') {
-                ai.y = ball.y - ai.height/2;
-                if (!s.noBlindSpot) {
-                    if (ai.y < AI_TOP_LIMIT) ai.y = AI_TOP_LIMIT;
-                    if (ai.y + ai.height > AI_BOTTOM_LIMIT) ai.y = AI_BOTTOM_LIMIT - ai.height;
-                } else {
-                    if (ai.y < FIELD_TOP) ai.y = FIELD_TOP;
-                    if (ai.y + ai.height > FIELD_BOTTOM) ai.y = FIELD_BOTTOM - ai.height;
-                }
-                return;
-            }
-            
             frameCount++;
-            // Para principiante, usar el valor dinámico que aumenta cada 3 toques
-            let reactionFrames;
-            if (gameConfig.difficulty === 'PRINCIPIANTE') {
-                reactionFrames = currentReactionFrames;
-            } else {
-                reactionFrames = s.reactionFrames || 18;
-            }
+            let reactionFrames = currentReactionFrames;
+            const shouldUpdate = (reactionFrames === 0) || (frameCount % reactionFrames === 0);
             
-            if (frameCount % reactionFrames === 0) {
+            if (shouldUpdate) {
                 let targetY = ball.y;
                 
                 if (!s.noError) {
-                    const errorRange = gameConfig.difficulty==='PROFESIONAL' ? 15 : 
-                                      gameConfig.difficulty==='AFICIONADO' ? 25 : 35;
+                    const errorRange = 25;
                     const error = (Math.random()-0.5) * errorRange * 2;
                     targetY += error;
                 }
                 
-                if (!s.noBlindSpot) {
-                    aiTargetY = Math.max(AI_TOP_LIMIT + ai.height/2, Math.min(AI_BOTTOM_LIMIT - ai.height/2, targetY));
-                } else {
-                    aiTargetY = Math.max(FIELD_TOP + ai.height/2, Math.min(FIELD_BOTTOM - ai.height/2, targetY));
-                }
+                aiTargetY = Math.max(FIELD_TOP + ai.height/2, Math.min(FIELD_BOTTOM - ai.height/2, targetY));
             }
             
             const diff = aiTargetY - ac;
@@ -557,41 +589,25 @@
                 ai.y += Math.sign(diff) * moveAmount;
             }
             
-            if (!s.noBlindSpot) {
-                if (ai.y < AI_TOP_LIMIT) ai.y = AI_TOP_LIMIT;
-                if (ai.y + ai.height > AI_BOTTOM_LIMIT) ai.y = AI_BOTTOM_LIMIT - ai.height;
-            } else {
-                if (ai.y < FIELD_TOP) ai.y = FIELD_TOP;
-                if (ai.y + ai.height > FIELD_BOTTOM) ai.y = FIELD_BOTTOM - ai.height;
-            }
+            if (ai.y < FIELD_TOP) ai.y = FIELD_TOP;
+            if (ai.y + ai.height > FIELD_BOTTOM) ai.y = FIELD_BOTTOM - ai.height;
         }
 
-        // ============ SISTEMA DE REBOTE Y ACELERACIÓN ============
         function applyBouncePhysics(paddle) {
             const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
             bounceCount++;
             
-            // *** NUEVO: Aumentar reactionFrames en principiante cada 3 toques ***
-            if (gameConfig.difficulty === 'PRINCIPIANTE') {
-                if (bounceCount > 0 && bounceCount % 3 === 0) {
-                    currentReactionFrames += 1;
+            if (s.reactionFramesIncrementInterval && s.reactionFramesIncrement) {
+                if (bounceCount > 0 && bounceCount % s.reactionFramesIncrementInterval === 0) {
+                    currentReactionFrames += s.reactionFramesIncrement;
                 }
             }
             
             if (s.ballSpeedType === 'frenetic') {
                 ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + s.ballSpeedIncrement);
-            } else if (s.ballSpeedType === 'accelerated') {
-                if (bounceCount % 2 === 0) {
-                    ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + s.ballSpeedIncrement);
-                }
-            } else if (s.ballSpeedType === 'progressive') {
-                if (bounceCount % 3 === 0) {
-                    ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + s.ballSpeedIncrement);
-                }
             }
             
             const hitPos = (ball.y - paddle.y) / paddle.height;
-            
             let angle;
             if (s.angleType === 'fixed45') {
                 angle = Math.PI / 4;
@@ -600,44 +616,70 @@
                 angle = (hitPos - 0.5) * Math.PI * 0.7;
             } else if (s.angleType === 'extreme' || s.angleType === 'unpredictable') {
                 angle = (hitPos - 0.5) * Math.PI * 0.9;
-                
                 if (s.english && Math.abs(hitPos - 0.5) > 0.35) {
                     angle *= 1.3;
                     ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + 0.3);
                 }
-                
-                if (s.angleType === 'unpredictable') {
-                    if (Math.abs(hitPos - 0.5) > 0.4) {
-                        angle += (Math.random() - 0.5) * 0.5;
-                    }
+                if (s.angleType === 'unpredictable' && Math.abs(hitPos - 0.5) > 0.4) {
+                    angle += (Math.random() - 0.5) * 0.5;
                 }
             }
-            
             ball.dy = Math.sin(angle) * ballSpeed;
         }
 
         function checkCollisions(){
             if(gameOver||gamePaused)return;
-            if(ball.y-ball.radius<=FIELD_TOP){ball.y=FIELD_TOP+ball.radius;ball.dy=Math.abs(ball.dy);}
-            if(ball.y+ball.radius>=FIELD_BOTTOM){ball.y=FIELD_BOTTOM-ball.radius;ball.dy=-Math.abs(ball.dy);}
             
-            if(ball.x-ball.radius<=player.x+player.width&&ball.x+ball.radius>=player.x&&ball.y+ball.radius>=player.y&&ball.y-ball.radius<=player.y+player.height){
-                if(ball.dx<0){
-                    ball.dx=Math.abs(ball.dx);
-                    ball.x=player.x+player.width+ball.radius;
+            // Pared superior
+            if(ball.y-ball.radius <= FIELD_TOP) {
+                ball.y = FIELD_TOP + ball.radius;
+                ball.dy = Math.abs(ball.dy);
+                playWallSound();
+            }
+            // Pared inferior
+            if(ball.y+ball.radius >= FIELD_BOTTOM) {
+                ball.y = FIELD_BOTTOM - ball.radius;
+                ball.dy = -Math.abs(ball.dy);
+                playWallSound();
+            }
+            
+            // Paleta del jugador
+            if(ball.x-ball.radius <= player.x+player.width && ball.x+ball.radius >= player.x && 
+               ball.y+ball.radius >= player.y && ball.y-ball.radius <= player.y+player.height) {
+                if(ball.dx < 0) {
+                    ball.dx = Math.abs(ball.dx);
+                    ball.x = player.x + player.width + ball.radius;
                     applyBouncePhysics(player);
-                }
-            }
-            if(ball.x+ball.radius>=ai.x&&ball.x-ball.radius<=ai.x+ai.width&&ball.y+ball.radius>=ai.y&&ball.y-ball.radius<=ai.y+ai.height){
-                if(ball.dx>0){
-                    ball.dx=-Math.abs(ball.dx);
-                    ball.x=ai.x-ball.radius;
-                    applyBouncePhysics(ai);
+                    playPaddleSound();
                 }
             }
             
-            if(ball.x-ball.radius>FIELD_RIGHT){player.score++;createStarParticles(FIELD_RIGHT,ball.y);if(!checkWinner())resetBall('player');}
-            if(ball.x+ball.radius<FIELD_LEFT){ai.score++;createStarParticles(FIELD_LEFT,ball.y);if(!checkWinner())resetBall('ai');}
+            // Paleta de la IA
+            if(ball.x+ball.radius >= ai.x && ball.x-ball.radius <= ai.x+ai.width && 
+               ball.y+ball.radius >= ai.y && ball.y-ball.radius <= ai.y+ai.height) {
+                if(ball.dx > 0) {
+                    ball.dx = -Math.abs(ball.dx);
+                    ball.x = ai.x - ball.radius;
+                    applyBouncePhysics(ai);
+                    playPaddleSound();
+                }
+            }
+            
+            // Punto jugador
+            if(ball.x-ball.radius > FIELD_RIGHT) {
+                player.score++;
+                createStarParticles(FIELD_RIGHT, ball.y);
+                playScoreSound();
+                if(!checkWinner()) resetBall('player');
+            }
+            
+            // Punto IA
+            if(ball.x+ball.radius < FIELD_LEFT) {
+                ai.score++;
+                createStarParticles(FIELD_LEFT, ball.y);
+                playScoreSound();
+                if(!checkWinner()) resetBall('ai');
+            }
         }
 
         canvas.addEventListener('mousemove',(e)=>{
