@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PONG'72 - Antares</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000; display: flex; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; overflow: hidden;
+            font-family: 'Press Start 2P', 'Courier New', monospace; touch-action: none;
+        }
+        #startScreen, #sideSelectScreen, #optionsScreen {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 40px; width: 100%; height: 100%; z-index: 30;
+        }
+        #gameTitle, #sideSelectTitle, #optionsTitle {
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 4rem; color: #fff; text-align: center;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.1);
+            letter-spacing: 8px; animation: titlePulse 2s infinite; line-height: 1.3;
+        }
+        @keyframes titlePulse {
+            0%,100%{text-shadow:0 0 20px rgba(255,255,255,0.5),0 0 40px rgba(255,255,255,0.3),0 0 80px rgba(255,255,255,0.1)}
+            50%{text-shadow:0 0 30px rgba(255,255,255,0.7),0 0 60px rgba(255,255,255,0.5),0 0 100px rgba(255,255,255,0.3)}
+        }
+        #optionsTitle, #sideSelectTitle { font-size: 2.5rem; letter-spacing: 4px; }
+        .menuButtons { display: flex; flex-direction: column; align-items: center; gap: 25px; }
+        .menuButton {
+            background: #000; color: #fff; border: 2px solid #fff;
+            padding: 15px 30px; font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 0.8rem; cursor: pointer; text-transform: uppercase;
+            transition: all 0.2s; min-width: 320px; text-align: center;
+            letter-spacing: 2px; line-height: 1.6;
+        }
+        .menuButton:hover { background: #fff; color: #000; transform: scale(1.05); }
+        .menuButton:active { transform: scale(0.95); }
+
+        #globalFooter {
+            position: fixed;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #fff;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 0.5rem;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            z-index: 100;
+            pointer-events: auto;
+        }
+        #globalFooter a {
+            color: #fff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        #globalFooter a:hover {
+            color: #0ff;
+        }
+
+        #optionsScreen { display: none; }
+        #sideSelectScreen { display: none; }
+        .optionGroup { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 500px; }
+        .optionLabel { font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 0.7rem; color: #fff; text-align: center; letter-spacing: 2px; line-height: 1.5; }
+        .optionSelector { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; }
+        .optionBtn {
+            background: #000; color: #fff; border: 2px solid #fff;
+            padding: 10px 20px; font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 0.6rem; cursor: pointer; text-transform: uppercase;
+            transition: all 0.2s; min-width: 50px; text-align: center;
+        }
+        .optionBtn:hover { background: #fff; color: #000; }
+        .optionValue {
+            font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 1rem;
+            color: #fff; text-align: center; min-width: 150px; letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        .optionValue.small { font-size: 0.7rem; min-width: 200px; }
+        #pointsValue { font-size: 1.5rem; color: #ff0; text-shadow: 0 0 20px rgba(255,255,0,0.5); }
+        #difficultyValue { color: #0ff; text-shadow: 0 0 15px rgba(0,255,255,0.5); }
+        #sideValue { color: #0f0; text-shadow: 0 0 15px rgba(0,255,0,0.5); }
+        #mainContainer {
+            display: none; flex-direction: column; align-items: center;
+            justify-content: center; width: 90vw; height: 95vh; gap: 10px;
+        }
+        #topBar {
+            display: flex; justify-content: center; align-items: center;
+            gap: 20px; width: 100%; max-width: 800px; padding: 5px 20px; z-index: 20;
+        }
+        .gameButton {
+            background: #000; color: #fff; border: 2px solid #fff;
+            padding: 10px 20px; font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 0.7rem; font-weight: normal; cursor: pointer;
+            text-transform: uppercase; transition: all 0.2s; min-width: 140px;
+            text-align: center; letter-spacing: 1px; line-height: 1.4;
+        }
+        .gameButton:hover { background: #fff; color: #000; }
+        .gameButton:active { transform: scale(0.95); }
+        #pauseOverlay, #countdownOverlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #fff; font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 2rem; text-align: center; display: none; pointer-events: none;
+            z-index: 15; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 2px;
+        }
+        #gameContainer {
+            position: relative; display: flex; justify-content: center;
+            align-items: center; width: 90vw; height: 85vh; max-width: 90vw; max-height: 85vh;
+        }
+        canvas {
+            background: #000; display: block; cursor: none;
+            max-width: 100%; max-height: 100%; width: auto; height: auto;
+        }
+        #gameOver {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #fff; text-align: center; display: none; pointer-events: none;
+            z-index: 10; width: 95%; max-width: 700px;
+        }
+        #winner {
+            font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 1.2rem;
+            margin-bottom: 2rem; line-height: 2; text-shadow: 0 0 15px rgba(255,255,255,0.3);
+            letter-spacing: 1px; word-spacing: 2px;
+        }
+        #restartGameOver {
+            font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 0.7rem;
+            margin-top: 2rem; pointer-events: auto; cursor: pointer;
+            animation: blink 1s infinite; letter-spacing: 1px; line-height: 1.6;
+        }
+        @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+        #controls {
+            position: absolute; bottom: -35px; left: 0; right: 0; text-align: center;
+            color: #fff; font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 0.55rem; pointer-events: none; z-index: 5;
+            letter-spacing: 0.5px; line-height: 1.6;
+        }
+        @media(max-width:768px){
+            #gameTitle{font-size:2.5rem;letter-spacing:4px}
+            #sideSelectTitle, #optionsTitle{font-size:1.8rem;letter-spacing:2px}
+            .menuButton{padding:12px 20px;font-size:.6rem;min-width:260px;letter-spacing:1px}
+            #mainContainer{width:95vw;height:95vh;gap:5px}
+            #topBar{gap:10px;padding:5px 10px}
+            .gameButton{padding:8px 12px;font-size:.55rem;min-width:110px;letter-spacing:.5px}
+            #gameContainer{width:95vw;height:80vh}
+            #controls{font-size:.45rem;bottom:-30px}
+            #winner{font-size:.9rem;line-height:1.8}
+            #restartGameOver{font-size:.55rem}
+            #pauseOverlay,#countdownOverlay{font-size:1.5rem}
+            #globalFooter{font-size:.4rem;bottom:10px}
+        }
+        @media(max-width:480px){
+            #gameTitle{font-size:2rem;letter-spacing:3px}
+            #sideSelectTitle, #optionsTitle{font-size:1.4rem}
+            .menuButton{padding:10px 15px;font-size:.5rem;min-width:220px}
+            #mainContainer{width:96vw;height:98vh;gap:3px}
+            #gameContainer{width:96vw;height:78vh}
+            .gameButton{padding:6px 8px;font-size:.5rem;min-width:90px}
+            #winner{font-size:.75rem;line-height:1.6}
+            #controls{font-size:.4rem}
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <div id="gameTitle">PONG'72</div>
+        <div class="menuButtons">
+            <button class="menuButton" id="quickPlayBtn">JUGAR PARTIDA RÁPIDA</button>
+            <button class="menuButton" id="optionsBtn">OPCIONES DE JUEGO</button>
+        </div>
+    </div>
+
+    <div id="sideSelectScreen">
+        <div id="sideSelectTitle">ELIGE LADO</div>
+        <div class="menuButtons">
+            <button class="menuButton" id="leftSideBtn">IZQUIERDA</button>
+            <button class="menuButton" id="rightSideBtn">DERECHA</button>
+        </div>
+        <button class="menuButton" id="backToMenuFromSideBtn">VOLVER</button>
+    </div>
+
+    <div id="optionsScreen">
+        <div id="optionsTitle">OPCIONES DE JUEGO</div>
+        <div class="optionGroup">
+            <div class="optionLabel">PUNTOS DE JUEGO</div>
+            <div class="optionSelector">
+                <button class="optionBtn" id="pointsDown">◀</button>
+                <div class="optionValue" id="pointsValue">2</div>
+                <button class="optionBtn" id="pointsUp">▶</button>
+            </div>
+        </div>
+        <div class="optionGroup">
+            <div class="optionLabel">DIFICULTAD</div>
+            <div class="optionSelector">
+                <button class="optionBtn" id="difficultyDown">◀</button>
+                <div class="optionValue small" id="difficultyValue">PRINCIPIANTE</div>
+                <button class="optionBtn" id="difficultyUp">▶</button>
+            </div>
+        </div>
+        <div class="optionGroup">
+            <div class="optionLabel">LADO DEL JUGADOR</div>
+            <div class="optionSelector">
+                <button class="optionBtn" id="sideDown">◀</button>
+                <div class="optionValue small" id="sideValue">IZQUIERDA</div>
+                <button class="optionBtn" id="sideUp">▶</button>
+            </div>
+        </div>
+        <button class="menuButton" id="backFromOptionsBtn">VOLVER</button>
+    </div>
+
+    <div id="mainContainer">
+        <div id="topBar">
+            <button class="gameButton" id="backButton">← MENÚ</button>
+            <button class="gameButton" id="pauseBtn">PAUSA</button>
+            <button class="gameButton" id="restartBtn">REINICIAR</button>
+        </div>
+        <div id="gameContainer">
+            <canvas id="gameCanvas"></canvas>
+            <div id="pauseOverlay">PAUSA</div>
+            <div id="countdownOverlay"></div>
+            <div id="gameOver">
+                <div id="winner"></div>
+                <div id="restartGameOver" style="display:none;">TOCA AQUI PARA JUGAR OTRA VEZ</div>
+            </div>
+            <div id="controls">
+                🖥️ PC: MUEVE EL RATON<br>📱 MOVIL: DESLIZA EL DEDO
+            </div>
+        </div>
+    </div>
+
+    <div id="globalFooter">
+        PONG'72 - Más en <a href="https://paimand.com" target="_blank" rel="noopener">paimand.com</a>
+    </div>
+
+    <script>
+        // ============ AUDIO ============
+        let audioCtx = null;
+        function initAudio() { if (!audioCtx) try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('touchstart', initAudio, { once: true });
+        
+        function playPaddleSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const freq = 380 + Math.random() * 40;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type='square'; osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.linearRampToValueAtTime(freq*1.3, now+0.06);
+            gain.gain.setValueAtTime(0.10, now); gain.gain.exponentialRampToValueAtTime(0.001, now+0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.08);
+        }
+        function playWallSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type='square'; osc.frequency.value = 200 + Math.random()*30;
+            gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now+0.05);
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now+0.05);
+        }
+        function playScoreSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const oscPong = audioCtx.createOscillator(); const gainPong = audioCtx.createGain();
+            oscPong.type='square'; oscPong.frequency.setValueAtTime(600, now);
+            oscPong.frequency.exponentialRampToValueAtTime(150, now+0.18);
+            gainPong.gain.setValueAtTime(0.15, now); gainPong.gain.exponentialRampToValueAtTime(0.001, now+0.20);
+            oscPong.connect(gainPong); gainPong.connect(audioCtx.destination); oscPong.start(now); oscPong.stop(now+0.20);
+            const oscStar = audioCtx.createOscillator(); const gainStar = audioCtx.createGain();
+            const lfo = audioCtx.createOscillator(); const lfoGain = audioCtx.createGain();
+            oscStar.type='sine'; oscStar.frequency.value=650; lfo.frequency.value=12; lfoGain.gain.value=30;
+            lfo.connect(lfoGain); lfoGain.connect(oscStar.frequency);
+            gainStar.gain.setValueAtTime(0.001, now); gainStar.gain.linearRampToValueAtTime(0.08, now+0.12);
+            gainStar.gain.exponentialRampToValueAtTime(0.001, now+0.40);
+            oscStar.connect(gainStar); gainStar.connect(audioCtx.destination);
+            lfo.start(now); oscStar.start(now); lfo.stop(now+0.40); oscStar.stop(now+0.40);
+        }
+
+        // ============ CONFIGURACIÓN ============
+        const POINTS_OPTIONS = [2, 5, 10, 15];
+        const DIFFICULTY_OPTIONS = ['PRINCIPIANTE', 'AFICIONADO', 'PROFESIONAL', 'MASTER DEL PONG'];
+        const SIDE_OPTIONS = ['IZQUIERDA', 'DERECHA', 'PREGUNTAR SIEMPRE'];
+        const DIFFICULTY_SETTINGS = {
+            'PRINCIPIANTE': { initialBallSpeed:6, aiSpeed:8, reactionFramesBase:2, reactionFramesIncrement:1, reactionFramesIncrementInterval:2, ballSpeedIncrement:0.4, maxBallSpeed:15, angleType:'fixed45', english:false, paddleHeight: 79 },
+            'AFICIONADO': { initialBallSpeed:8, aiSpeed:10, reactionFramesBase:1, reactionFramesIncrement:1, reactionFramesIncrementInterval:2, ballSpeedIncrement:0.8, maxBallSpeed:20, angleType:'variable', english:false, paddleHeight: 72 },
+            'PROFESIONAL': { initialBallSpeed:10, aiSpeed:13, reactionFramesBase:1, reactionFramesIncrement:1, reactionFramesIncrementInterval:3, ballSpeedIncrement:0.8, maxBallSpeed:20, angleType:'extreme', english:true, paddleHeight: 66 },
+            'MASTER DEL PONG': { initialBallSpeed:12, aiSpeed:16, reactionFramesBase:0, reactionFramesIncrement:1, reactionFramesIncrementInterval:4, ballSpeedIncrement:1.2, maxBallSpeed:25, angleType:'unpredictable', english:true, paddleHeight: 60 }
+        };
+        let gameConfig = { 
+            pointsToWin:2, 
+            difficulty:'PRINCIPIANTE', 
+            difficultyIndex:0, 
+            pointsIndex:0,
+            side: 'IZQUIERDA',
+            sideIndex: 0
+        };
+        let playerSide = 'left';
+        let currentPaddleHeight = 60; // Se actualizará al iniciar
+
+        // ============ NAVEGACIÓN ============
+        const startScreen = document.getElementById('startScreen');
+        const sideSelectScreen = document.getElementById('sideSelectScreen');
+        const optionsScreen = document.getElementById('optionsScreen');
+        const mainContainer = document.getElementById('mainContainer');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function startGameWithSide(side) {
+            playerSide = side;
+            sideSelectScreen.style.display = 'none';
+            mainContainer.style.display = 'flex';
+            initGame();
+            startCountdown();
+        }
+
+        document.getElementById('quickPlayBtn').addEventListener('click', () => {
+            if (gameConfig.side === 'PREGUNTAR SIEMPRE') {
+                startScreen.style.display = 'none';
+                sideSelectScreen.style.display = 'flex';
+            } else {
+                startScreen.style.display = 'none';
+                mainContainer.style.display = 'flex';
+                playerSide = gameConfig.side === 'IZQUIERDA' ? 'left' : 'right';
+                initGame();
+                startCountdown();
+            }
+        });
+        document.getElementById('optionsBtn').addEventListener('click', () => { startScreen.style.display='none'; optionsScreen.style.display='flex'; updateOptionsDisplay(); });
+        document.getElementById('backFromOptionsBtn').addEventListener('click', () => { optionsScreen.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('backToMenuFromSideBtn').addEventListener('click', () => { sideSelectScreen.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('backButton').addEventListener('click', () => { stopGame(); mainContainer.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('leftSideBtn').addEventListener('click', () => startGameWithSide('left'));
+        document.getElementById('rightSideBtn').addEventListener('click', () => startGameWithSide('right'));
+        
+        document.getElementById('quickPlayBtn').addEventListener('touchstart', (e) => { e.preventDefault(); document.getElementById('quickPlayBtn').click(); });
+        document.getElementById('optionsBtn').addEventListener('touchstart', (e) => { e.preventDefault(); document.getElementById('optionsBtn').click(); });
+        document.getElementById('backFromOptionsBtn').addEventListener('touchstart', (e) => { e.preventDefault(); optionsScreen.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('backToMenuFromSideBtn').addEventListener('touchstart', (e) => { e.preventDefault(); sideSelectScreen.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('backButton').addEventListener('touchstart', (e) => { e.preventDefault(); stopGame(); mainContainer.style.display='none'; startScreen.style.display='flex'; });
+        document.getElementById('leftSideBtn').addEventListener('touchstart', (e) => { e.preventDefault(); startGameWithSide('left'); });
+        document.getElementById('rightSideBtn').addEventListener('touchstart', (e) => { e.preventDefault(); startGameWithSide('right'); });
+
+        function updateOptionsDisplay() {
+            document.getElementById('pointsValue').textContent = POINTS_OPTIONS[gameConfig.pointsIndex];
+            document.getElementById('difficultyValue').textContent = DIFFICULTY_OPTIONS[gameConfig.difficultyIndex];
+            document.getElementById('sideValue').textContent = SIDE_OPTIONS[gameConfig.sideIndex];
+        }
+        
+        document.getElementById('pointsUp').addEventListener('click', () => { gameConfig.pointsIndex=(gameConfig.pointsIndex+1)%POINTS_OPTIONS.length; gameConfig.pointsToWin=POINTS_OPTIONS[gameConfig.pointsIndex]; updateOptionsDisplay(); });
+        document.getElementById('pointsDown').addEventListener('click', () => { gameConfig.pointsIndex=(gameConfig.pointsIndex-1+POINTS_OPTIONS.length)%POINTS_OPTIONS.length; gameConfig.pointsToWin=POINTS_OPTIONS[gameConfig.pointsIndex]; updateOptionsDisplay(); });
+        document.getElementById('difficultyUp').addEventListener('click', () => { gameConfig.difficultyIndex=(gameConfig.difficultyIndex+1)%DIFFICULTY_OPTIONS.length; gameConfig.difficulty=DIFFICULTY_OPTIONS[gameConfig.difficultyIndex]; updateOptionsDisplay(); });
+        document.getElementById('difficultyDown').addEventListener('click', () => { gameConfig.difficultyIndex=(gameConfig.difficultyIndex-1+DIFFICULTY_OPTIONS.length)%DIFFICULTY_OPTIONS.length; gameConfig.difficulty=DIFFICULTY_OPTIONS[gameConfig.difficultyIndex]; updateOptionsDisplay(); });
+        document.getElementById('sideUp').addEventListener('click', () => { gameConfig.sideIndex=(gameConfig.sideIndex+1)%SIDE_OPTIONS.length; gameConfig.side=SIDE_OPTIONS[gameConfig.sideIndex]; updateOptionsDisplay(); });
+        document.getElementById('sideDown').addEventListener('click', () => { gameConfig.sideIndex=(gameConfig.sideIndex-1+SIDE_OPTIONS.length)%SIDE_OPTIONS.length; gameConfig.side=SIDE_OPTIONS[gameConfig.sideIndex]; updateOptionsDisplay(); });
+
+        // ============ JUEGO ============
+        const GAME_WIDTH = 800, GAME_HEIGHT = 600, LINE_WIDTH = 8;
+        const FIELD_TOP = LINE_WIDTH, FIELD_BOTTOM = GAME_HEIGHT - LINE_WIDTH;
+        const FIELD_LEFT = LINE_WIDTH, FIELD_RIGHT = GAME_WIDTH - LINE_WIDTH;
+        canvas.width = GAME_WIDTH; canvas.height = GAME_HEIGHT;
+
+        function resizeCanvas() {
+            const c = document.getElementById('gameContainer');
+            const mw = c.clientWidth, mh = c.clientHeight;
+            let w, h;
+            if (mw/mh > GAME_WIDTH/GAME_HEIGHT) { h = mh; w = h*(GAME_WIDTH/GAME_HEIGHT); }
+            else { w = mw; h = w*(GAME_HEIGHT/GAME_WIDTH); }
+            canvas.style.width = w+'px'; canvas.style.height = h+'px';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 100));
+
+        const PADDLE_WIDTH = 12, BALL_SIZE = 15, BALL_RADIUS = BALL_SIZE/2;
+        let animationId, gameStarted = false, gameOver = false, gamePaused = false;
+        let player, ai, ball, ballSpeed, particles = [];
+        let touchActive = false, frameCount = 0, aiTargetY, playerTargetY;
+        let bounceCount = 0, isFirstServe = true;
+        let currentReactionFrames = 2;
+        let countdownActive = false, countdownStartTime = 0;
+        const COUNTDOWN_DURATION = 3;
+
+        function initGame() {
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            currentPaddleHeight = s.paddleHeight;
+            ballSpeed = s.initialBallSpeed;
+            player = { width: PADDLE_WIDTH, height: currentPaddleHeight, score: 0 };
+            ai = { width: PADDLE_WIDTH, height: currentPaddleHeight, score: 0 };
+            if (playerSide === 'left') {
+                player.x = FIELD_LEFT + 20; ai.x = FIELD_RIGHT - 20 - PADDLE_WIDTH;
+                ball = { x: player.x + player.width + 30, y: GAME_HEIGHT/2, size: BALL_SIZE, radius: BALL_RADIUS, dx: ballSpeed, dy: 0 };
+            } else {
+                player.x = FIELD_RIGHT - 20 - PADDLE_WIDTH; ai.x = FIELD_LEFT + 20;
+                ball = { x: player.x - 30, y: GAME_HEIGHT/2, size: BALL_SIZE, radius: BALL_RADIUS, dx: -ballSpeed, dy: 0 };
+            }
+            player.y = GAME_HEIGHT/2 - currentPaddleHeight/2;
+            ai.y = GAME_HEIGHT/2 - currentPaddleHeight/2;
+            particles = []; gameOver = false; gamePaused = false; touchActive = false;
+            frameCount = 0; aiTargetY = GAME_HEIGHT/2; playerTargetY = player.y;
+            bounceCount = 0; isFirstServe = true;
+            currentReactionFrames = (s.reactionFramesBase !== undefined) ? s.reactionFramesBase : 2;
+            countdownActive = false; gameStarted = false;
+        }
+
+        function startCountdown() {
+            resizeCanvas();
+            countdownStartTime = performance.now();
+            countdownActive = true;
+            document.getElementById('countdownOverlay').style.display = 'none';
+            document.getElementById('pauseOverlay').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('restartGameOver').style.display = 'none';
+            document.getElementById('pauseBtn').textContent = 'PAUSA';
+            document.getElementById('controls').innerHTML = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024) ? '📱 MOVIL: DESLIZA EL DEDO' : '🖥️ PC: MUEVE EL RATON';
+            gameLoop();
+        }
+
+        function stopGame() { gameStarted = false; countdownActive = false; if(animationId) { cancelAnimationFrame(animationId); animationId = null; } }
+
+        function createStarParticles(x, y) {
+            for(let i=0; i<30; i++) {
+                const a = (Math.PI*2*i)/30 + (Math.random()-0.5)*0.5;
+                const s = 2+Math.random()*4, l = 30+Math.random()*30, sz = 1+Math.random()*3;
+                particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: l, maxLife: l, size: sz, sparkle: Math.random()*Math.PI*2 });
+            }
+        }
+
+        function updateParticles() {
+            for(let i=particles.length-1; i>=0; i--) {
+                const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--;
+                p.vx *= 0.98; p.vy *= 0.98; p.sparkle += 0.1;
+                if(p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function drawParticles() {
+            for(const p of particles) {
+                const a = (p.life/p.maxLife) * (Math.abs(Math.sin(p.sparkle))*0.5+0.5);
+                ctx.save(); ctx.globalAlpha = a;
+                ctx.fillStyle = `rgb(255, ${215+Math.floor(Math.sin(p.sparkle*2)*40)}, 0)`;
+                ctx.shadowColor = `rgba(255,215,0,${a})`; ctx.shadowBlur = p.size*3;
+                const step = Math.PI/5; let rot = Math.PI/2*3; ctx.beginPath();
+                for(let i=0; i<5; i++) {
+                    ctx.lineTo(p.x+Math.cos(rot)*p.size*2, p.y+Math.sin(rot)*p.size*2);
+                    rot += step; ctx.lineTo(p.x+Math.cos(rot)*p.size, p.y+Math.sin(rot)*p.size); rot += step;
+                }
+                ctx.closePath(); ctx.fill(); ctx.restore();
+            }
+        }
+
+        function drawDigit(digit, x, y, size) {
+            ctx.fillStyle = "white"; const t = size, w = size*4, h = size*4;
+            const seg = {
+                0:[1,1,1,1,1,1,0],1:[0,0,1,0,0,1,0],2:[1,0,1,1,1,0,1],3:[1,0,1,1,0,1,1],
+                4:[0,1,1,0,0,1,1],5:[1,1,0,1,0,1,1],6:[1,1,0,1,1,1,1],7:[1,0,1,0,0,1,0],
+                8:[1,1,1,1,1,1,1],9:[1,1,1,1,0,1,1]
+            }[digit];
+            if(!seg)return;
+            if(seg[0])ctx.fillRect(x,y,w,t); if(seg[3])ctx.fillRect(x,y+h*2-t,w,t);
+            if(seg[1])ctx.fillRect(x,y,t,h); if(seg[2])ctx.fillRect(x+w-t,y,t,h);
+            if(seg[4])ctx.fillRect(x,y+h,t,h); if(seg[5])ctx.fillRect(x+w-t,y+h,t,h);
+            if(seg[6])ctx.fillRect(x,y+h-t/2,w,t);
+        }
+
+        function drawScore(ctx, score, centerX, y) {
+            const ds=16, sp=ds*5.5, str=score.toString();
+            const tw=str.length*(ds*4)+(str.length-1)*(sp-ds*4), sx=centerX-tw/2;
+            for(let i=0;i<str.length;i++) drawDigit(parseInt(str[i]),sx+i*sp,y,ds);
+        }
+
+        const pauseBtn=document.getElementById('pauseBtn'), pauseOverlay=document.getElementById('pauseOverlay');
+        pauseBtn.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();togglePause();});
+        pauseBtn.addEventListener('touchstart',(e)=>{e.preventDefault();e.stopPropagation();togglePause();});
+        document.getElementById('restartBtn').addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();restartGame();});
+        document.getElementById('restartBtn').addEventListener('touchstart',(e)=>{e.preventDefault();e.stopPropagation();restartGame();});
+        function togglePause(){if(gameOver||countdownActive)return;gamePaused=!gamePaused;pauseBtn.textContent=gamePaused?'CONTINUAR':'PAUSA';pauseOverlay.style.display=gamePaused?'block':'none';}
+
+        function drawFieldBorders(){ctx.strokeStyle='#fff';ctx.lineWidth=LINE_WIDTH;ctx.setLineDash([]);ctx.strokeRect(LINE_WIDTH/2,LINE_WIDTH/2,GAME_WIDTH-LINE_WIDTH,GAME_HEIGHT-LINE_WIDTH);}
+        function drawCenterLine(){ctx.strokeStyle='#fff';ctx.lineWidth=LINE_WIDTH;ctx.setLineDash([20,20]);ctx.beginPath();ctx.moveTo(GAME_WIDTH/2,FIELD_TOP);ctx.lineTo(GAME_WIDTH/2,FIELD_BOTTOM);ctx.stroke();ctx.setLineDash([]);}
+        function drawScores(){
+            const playerScoreX = (playerSide === 'left') ? GAME_WIDTH/4 : GAME_WIDTH*3/4;
+            const aiScoreX = (playerSide === 'left') ? GAME_WIDTH*3/4 : GAME_WIDTH/4;
+            drawScore(ctx, player.score, playerScoreX, 50);
+            drawScore(ctx, ai.score, aiScoreX, 50);
+        }
+
+        function resetBall(lastScorer){
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            ballSpeed = s.initialBallSpeed; bounceCount = 0;
+            if (playerSide === 'left') {
+                if(lastScorer==='player'){ball.x=ai.x-30;ball.dx=-ballSpeed;}
+                else if(lastScorer==='ai'){ball.x=player.x+player.width+30;ball.dx=ballSpeed;}
+                else{ball.x=player.x+player.width+30;ball.dx=ballSpeed;}
+            } else {
+                if(lastScorer==='player'){ball.x=ai.x+ai.width+30;ball.dx=ballSpeed;}
+                else if(lastScorer==='ai'){ball.x=player.x-30;ball.dx=-ballSpeed;}
+                else{ball.x=player.x-30;ball.dx=-ballSpeed;}
+            }
+            ball.y=GAME_HEIGHT/2+(Math.random()*150-75);
+            if (isFirstServe) { ball.dy = 0; isFirstServe = false; }
+            else if(gameConfig.difficulty==='PRINCIPIANTE'){ ball.dy = ballSpeed * (Math.random()>0.5?1:-1); }
+            else { ball.dy = ballSpeed*(Math.random()*2-1); }
+            currentReactionFrames = (s.reactionFramesBase !== undefined) ? s.reactionFramesBase : 2;
+        }
+
+        function checkWinner(){
+            if(player.score>=gameConfig.pointsToWin){endGame('¡Felicidades! Lograste mover un píxel 🎉');return true;}
+            if(ai.score>=gameConfig.pointsToWin){endGame('Mi abuela pixelada reacciona más rápido 👵');return true;}
+            return false;
+        }
+
+        function endGame(msg){gameOver=true;gamePaused=false;pauseBtn.textContent='PAUSA';pauseOverlay.style.display='none';document.getElementById('winner').textContent=msg;document.getElementById('gameOver').style.display='block';document.getElementById('restartGameOver').style.display='block';}
+
+        function restartGame(){
+            initGame(); resizeCanvas();
+            document.getElementById('gameOver').style.display='none'; document.getElementById('restartGameOver').style.display='none';
+            document.getElementById('pauseOverlay').style.display='none'; document.getElementById('pauseBtn').textContent='PAUSA';
+            startCountdown();
+        }
+
+        document.getElementById('restartGameOver').addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();restartGame();});
+        document.getElementById('restartGameOver').addEventListener('touchstart',(e)=>{e.preventDefault();e.stopPropagation();restartGame();});
+        document.getElementById('gameOver').addEventListener('click',(e)=>{if(gameOver){e.preventDefault();e.stopPropagation();restartGame();}});
+
+        function smoothPlayerMove() {
+            const diff = playerTargetY - player.y;
+            if (Math.abs(diff) > 0.3) { player.y += diff * 0.5; } else { player.y = playerTargetY; }
+            if (player.y < FIELD_TOP) { player.y = FIELD_TOP; playerTargetY = FIELD_TOP; }
+            if (player.y + player.height > FIELD_BOTTOM) { player.y = FIELD_BOTTOM - player.height; playerTargetY = FIELD_BOTTOM - player.height; }
+        }
+
+        function moveAI() {
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty];
+            const ac = ai.y + ai.height/2;
+            frameCount++;
+            let reactionFrames = currentReactionFrames;
+            const shouldUpdate = (reactionFrames === 0) || (frameCount % reactionFrames === 0);
+            if (shouldUpdate) {
+                let targetY = ball.y;
+                aiTargetY = Math.max(FIELD_TOP + ai.height/2, Math.min(FIELD_BOTTOM - ai.height/2, targetY));
+            }
+            const diff = aiTargetY - ac;
+            if (Math.abs(diff) > 0.5) {
+                const aiSpeed = s.aiSpeed;
+                const moveAmount = Math.min(aiSpeed, Math.abs(diff));
+                ai.y += Math.sign(diff) * moveAmount;
+            }
+            if (ai.y < FIELD_TOP) ai.y = FIELD_TOP;
+            if (ai.y + ai.height > FIELD_BOTTOM) ai.y = FIELD_BOTTOM - ai.height;
+        }
+
+        function applyBouncePhysics(paddle) {
+            const s = DIFFICULTY_SETTINGS[gameConfig.difficulty]; bounceCount++;
+            if (s.reactionFramesIncrementInterval && s.reactionFramesIncrement) {
+                if (bounceCount > 0 && bounceCount % s.reactionFramesIncrementInterval === 0) currentReactionFrames += s.reactionFramesIncrement;
+            }
+            ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + s.ballSpeedIncrement);
+            const hitPos = (ball.y - paddle.y) / paddle.height;
+            let angle;
+            if (s.angleType === 'fixed45') { angle = Math.PI / 4; if (ball.dy < 0) angle = -angle; }
+            else if (s.angleType === 'variable') { angle = (hitPos - 0.5) * Math.PI * 0.7; }
+            else {
+                angle = (hitPos - 0.5) * Math.PI * 0.9;
+                if (s.english && Math.abs(hitPos - 0.5) > 0.35) { angle *= 1.3; ballSpeed = Math.min(s.maxBallSpeed, ballSpeed + 0.3); }
+                if (s.angleType === 'unpredictable' && Math.abs(hitPos - 0.5) > 0.4) { angle += (Math.random() - 0.5) * 0.5; }
+            }
+            ball.dy = Math.sin(angle) * ballSpeed;
+        }
+
+        function checkCollisions(){
+            if(gameOver||gamePaused||countdownActive)return;
+            if(ball.y-ball.radius <= FIELD_TOP){ball.y=FIELD_TOP+ball.radius;ball.dy=Math.abs(ball.dy);playWallSound();}
+            if(ball.y+ball.radius >= FIELD_BOTTOM){ball.y=FIELD_BOTTOM-ball.radius;ball.dy=-Math.abs(ball.dy);playWallSound();}
+
+            const playerLeft = player.x, playerRight = player.x + player.width;
+            const ballGoingToPlayer = (playerSide === 'left') ? (ball.dx < 0) : (ball.dx > 0);
+            if(ball.x-ball.radius <= playerRight && ball.x+ball.radius >= playerLeft && ball.y+ball.radius >= player.y && ball.y-ball.radius <= player.y+player.height){
+                if(ballGoingToPlayer){
+                    ball.dx = (playerSide==='left') ? Math.abs(ball.dx) : -Math.abs(ball.dx);
+                    ball.x = (playerSide==='left') ? playerRight+ball.radius : playerLeft-ball.radius;
+                    applyBouncePhysics(player); playPaddleSound();
+                }
+            }
+            const aiLeft = ai.x, aiRight = ai.x + ai.width;
+            const ballGoingToAI = (playerSide === 'left') ? (ball.dx > 0) : (ball.dx < 0);
+            if(ball.x-ball.radius <= aiRight && ball.x+ball.radius >= aiLeft && ball.y+ball.radius >= ai.y && ball.y-ball.radius <= ai.y+ai.height){
+                if(ballGoingToAI){
+                    ball.dx = (playerSide==='left') ? -Math.abs(ball.dx) : Math.abs(ball.dx);
+                    ball.x = (playerSide==='left') ? aiLeft-ball.radius : aiRight+ball.radius;
+                    applyBouncePhysics(ai); playPaddleSound();
+                }
+            }
+            const playerScored = (playerSide==='left' && ball.x-ball.radius>FIELD_RIGHT) || (playerSide==='right' && ball.x+ball.radius<FIELD_LEFT);
+            const aiScored = (playerSide==='left' && ball.x+ball.radius<FIELD_LEFT) || (playerSide==='right' && ball.x-ball.radius>FIELD_RIGHT);
+            if(playerScored){player.score++;createStarParticles(playerSide==='left'?FIELD_RIGHT:FIELD_LEFT,ball.y);playScoreSound();if(!checkWinner())resetBall('player');}
+            else if(aiScored){ai.score++;createStarParticles(playerSide==='left'?FIELD_LEFT:FIELD_RIGHT,ball.y);playScoreSound();if(!checkWinner())resetBall('ai');}
+        }
+
+        function updateCountdown() {
+            if (!countdownActive) return;
+            const elapsed = (performance.now() - countdownStartTime) / 1000;
+            const remaining = COUNTDOWN_DURATION - elapsed;
+            if (remaining <= 0) {
+                countdownActive = false;
+                gameStarted = true;
+            }
+        }
+
+        function drawCountdown() {
+            if (!countdownActive) return;
+            const elapsed = (performance.now() - countdownStartTime) / 1000;
+            const remaining = COUNTDOWN_DURATION - elapsed;
+            let text;
+            if (remaining <= 0) text = '¡YA!';
+            else text = Math.ceil(remaining).toString();
+            ctx.font = 'bold 120px "Press Start 2P"';
+            ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+            ctx.fillText(text, GAME_WIDTH/2, GAME_HEIGHT/2 - 20);
+        }
+
+        canvas.addEventListener('mousemove',(e)=>{
+            if(!gameOver&&!gamePaused&&gameStarted&&!touchActive&&!/Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)){
+                const r=canvas.getBoundingClientRect();
+                playerTargetY=(e.clientY-r.top)*(GAME_HEIGHT/r.height)-player.height/2;
+                if(playerTargetY<FIELD_TOP)playerTargetY=FIELD_TOP;
+                if(playerTargetY+player.height>FIELD_BOTTOM)playerTargetY=FIELD_BOTTOM-player.height;
+            }
+        });
+        canvas.addEventListener('touchstart',(e)=>{e.preventDefault();if(gameOver||gamePaused||!gameStarted)return;touchActive=true;const r=canvas.getBoundingClientRect();playerTargetY=(e.touches[0].clientY-r.top)*(GAME_HEIGHT/r.height)-player.height/2;if(playerTargetY<FIELD_TOP)playerTargetY=FIELD_TOP;if(playerTargetY+player.height>FIELD_BOTTOM)playerTargetY=FIELD_BOTTOM-player.height;player.y=playerTargetY;});
+        canvas.addEventListener('touchmove',(e)=>{e.preventDefault();if(gameOver||gamePaused||!gameStarted)return;const r=canvas.getBoundingClientRect();playerTargetY=(e.touches[0].clientY-r.top)*(GAME_HEIGHT/r.height)-player.height/2;if(playerTargetY<FIELD_TOP)playerTargetY=FIELD_TOP;if(playerTargetY+player.height>FIELD_BOTTOM)playerTargetY=FIELD_BOTTOM-player.height;player.y=playerTargetY;});
+        canvas.addEventListener('touchend',(e)=>{e.preventDefault();touchActive=false;});
+
+        function update(){
+            if(!gameStarted || gameOver || gamePaused) {
+                if (countdownActive) updateCountdown();
+                if (gamePaused) updateParticles();
+                return;
+            }
+            updateParticles(); smoothPlayerMove(); moveAI();
+            ball.x+=ball.dx; ball.y+=ball.dy; checkCollisions();
+        }
+
+        function draw(){
+            ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
+            drawFieldBorders(); drawCenterLine(); drawScores();
+            ctx.fillStyle='#fff';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillRect(ai.x, ai.y, ai.width, ai.height);
+            ctx.fillStyle='#fff';
+            ctx.fillRect(ball.x-ball.radius, ball.y-ball.radius, ball.size, ball.size);
+            drawParticles();
+            if (countdownActive) drawCountdown();
+            if(gameOver||gamePaused){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,0,GAME_WIDTH,GAME_HEIGHT);}
+        }
+
+        function gameLoop(){update();draw();animationId=requestAnimationFrame(gameLoop);}
+        updateOptionsDisplay();
+    </script>
+</body>
+</html>
